@@ -31,14 +31,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Ensure Release Keystore exists
+      - name: Restore Release Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ ! -f "my-upload-key.jks" ]; then
-            echo "Generating release signing keystore..."
-            keytool -genkeypair -v -keystore my-upload-key.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=CodeVault, OU=Dev, O=CodeVault, L=Tehran, S=Tehran, C=IR"
-          else
-            echo "Release keystore found."
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "ERROR: KEYSTORE_BASE64 secret is missing."
+            exit 1
           fi
+
+          echo "$KEYSTORE_BASE64" | base64 --decode > my-upload-key.jks
+
+          if [ ! -s "my-upload-key.jks" ]; then
+            echo "ERROR: Failed to restore release keystore."
+            exit 1
+          fi
+
+          echo "Release keystore restored successfully."
 
       - name: Run Unit & Robolectric Tests
         run: ./gradlew testDebugUnitTest
@@ -46,8 +55,8 @@ jobs:
       - name: Build Release APK and AAB
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'android' }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'android' }}
+          STORE_PASSWORD: android
+          KEY_PASSWORD: android
         run: ./gradlew assembleRelease bundleRelease
 
       - name: Upload Release APK
