@@ -1,0 +1,8 @@
+{
+  "name": "CodeVault",
+  "description": "مدیریت حرفه‌ای پروژه و کد - Professional Code and Project Manager",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
