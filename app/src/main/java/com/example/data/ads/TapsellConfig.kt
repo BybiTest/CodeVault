@@ -6,13 +6,11 @@ package com.example.data.ads
  */
 object TapsellConfig {
 
-  // App Key از پنل تپسل
   const val APP_KEY = "papdggdngktkkhloocmbmngenrjirdgrfhcrfjksqcgfatmrfrmfgmtngfqgcepmqirmhb"
 
-  // Zone IDs
-  const val ZONE_REWARDED_VIDEO = "6ab553dae237e15c69fbac2d"   // ویدیوی جایزه‌ای
-  const val ZONE_STANDARD_BANNER = "6ab553eff9c3d5797ba49cda"  // بنر استاندارد
-  const val ZONE_INSTANT_BANNER = "6ab55455f9c3d5797ba49cdb"   // بنر آنی
+  const val ZONE_REWARDED_VIDEO = "6ab553dae237e15c69fbac2d"
+  const val ZONE_STANDARD_BANNER = "6ab553eff9c3d5797ba49cda"
+  const val ZONE_INSTANT_BANNER = "6ab55455f9c3d5797ba49cdb"
 
   val isConfigured: Boolean
     get() = APP_KEY.isNotBlank() && !APP_KEY.contains("YOUR_") &&
