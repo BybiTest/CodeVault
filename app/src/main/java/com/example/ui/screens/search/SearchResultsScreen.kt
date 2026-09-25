@@ -18,8 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.repository.SearchResultItem
+import com.example.ui.components.AdBannerView
 import com.example.ui.components.CodeVaultTopBar
 import com.example.ui.localization.LocalAppStrings
+import com.example.ui.navigation.Screen
 import com.example.ui.screens.explorer.getFileColor
 
 @Composable
@@ -28,7 +30,9 @@ fun SearchResultsScreen(
   results: List<SearchResultItem>,
   isLoading: Boolean,
   onBack: () -> Unit,
-  onResultClick: (SearchResultItem) -> Unit
+  onResultClick: (SearchResultItem) -> Unit,
+  isVip: Boolean = false,
+  onNavigate: (String) -> Unit = {}
 ) {
   val strings = LocalAppStrings.current
 
@@ -72,6 +76,14 @@ fun SearchResultsScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
       ) {
+        // ⬇️ تبلیغ بنر استاندارد (بالای نتایج)
+        item {
+          AdBannerView(
+            isVip = isVip,
+            onUpgradeClick = { onNavigate(Screen.VipPurchase.route) }
+          )
+        }
+
         items(results) { item ->
           SearchResultCard(item = item, onClick = { onResultClick(item) })
         }
