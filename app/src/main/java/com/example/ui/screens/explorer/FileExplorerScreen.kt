@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.example.data.model.FileEntity
 import com.example.data.model.FolderEntity
 import com.example.data.model.ProjectEntity
+import com.example.ui.components.AdBannerView
 import com.example.ui.components.CodeVaultTopBar
 import com.example.ui.components.ConfirmDialog
 import com.example.ui.localization.LocalAppStrings
@@ -46,12 +47,13 @@ fun FileExplorerScreen(
   onDeleteFolder: (String) -> Unit,
   onDuplicateFile: (String) -> Unit,
   onRenameFile: (fileId: String, newName: String) -> Unit,
-  onRenameFolder: (folderId: String, newName: String) -> Unit
+  onRenameFolder: (folderId: String, newName: String) -> Unit,
+  isVip: Boolean = false
 ) {
   val strings = LocalAppStrings.current
 
-  var itemToDelete by remember { mutableStateOf<Pair<String, String>?>(null) } // type ("FILE"/"FOLDER") to id
-  var itemToRename by remember { mutableStateOf<Triple<String, String, String>?>(null) } // type, id, currentName
+  var itemToDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
+  var itemToRename by remember { mutableStateOf<Triple<String, String, String>?>(null) }
   var renameInput by remember { mutableStateOf("") }
 
   val title = currentFolder?.name ?: (project?.name ?: strings.fileExplorer)
@@ -198,6 +200,15 @@ fun FileExplorerScreen(
                 renameInput = file.name
               },
               onDelete = { itemToDelete = Pair("FILE", file.id) }
+            )
+          }
+
+          // ⬇️ تبلیغ بنر استاندارد (پایین لیست)
+          item {
+            Spacer(modifier = Modifier.height(12.dp))
+            AdBannerView(
+              isVip = isVip,
+              onUpgradeClick = { onNavigate(Screen.VipPurchase.route) }
             )
           }
         }
