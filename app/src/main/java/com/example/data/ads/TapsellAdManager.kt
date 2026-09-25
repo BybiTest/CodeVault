@@ -5,206 +5,190 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
-import ir.tapsell.plus.AdRequestCallback
-import ir.tapsell.plus.AdShowListener
-import ir.tapsell.plus.TapsellPlus
-import ir.tapsell.plus.TapsellPlusBannerType
-import ir.tapsell.plus.TapsellPlusInitListener
-import ir.tapsell.plus.model.AdNetworks
+import ir.tapsell.mediation.Tapsell
+import ir.tapsell.mediation.ad.request.RequestResultListener
+import ir.tapsell.mediation.ad.show.AdShowListener
+import ir.tapsell.mediation.ad.show.ShowResultListener
+import ir.tapsell.mediation.ad.views.bnr.BannerAdViewContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class TapsellAdManager(private val context: Context) {
 
-  companion object {
-    private const val TAG = "TapsellAdManager"
-    @Volatile private var isInitialized = false
-    @Volatile private var isInitializing = false
-  }
-
-  private val _isAdReady = MutableStateFlow(false)
-  val isAdReady: StateFlow<Boolean> = _isAdReady.asStateFlow()
-
-  private var lastRewardedResponseId: String? = null
-  private var lastStandardBannerResponseId: String? = null
-  private var lastInstantBannerResponseId: String? = null
-
-  fun initialize() {
-    if (isInitialized || isInitializing) return
-
-    if (!TapsellConfig.isConfigured) {
-      Log.w(TAG, "Tapsell config not set. Skipping initialization.")
-      return
+    companion object {
+        private const val TAG = "TapsellAdManager"
+        @Volatile private var isInitialized = false
     }
 
-    isInitializing = true
-    try {
-      TapsellPlus.initialize(context, TapsellConfig.APP_KEY, object : TapsellPlusInitListener {
-        override fun onInitializeSuccess(adNetworks: AdNetworks) {
-          isInitialized = true
-          isInitializing = false
-          Log.i(TAG, "Tapsell initialized. Networks: $adNetworks")
-          preloadRewardedVideo()
-        }
+    private val _isAdReady = MutableStateFlow(false)
+    val isAdReady: StateFlow<Boolean> = _isAdReady.asStateFlow()
 
-        override fun onInitializeFailed(adNetworks: AdNetworks, errorMessage: String?) {
-          isInitializing = false
-          Log.e(TAG, "Tapsell init failed: $errorMessage")
-        }
-      })
-    } catch (e: Exception) {
-      isInitializing = false
-      Log.e(TAG, "Exception during Tapsell init: ${e.message}", e)
-    }
-  }
+    private var lastRewardedResponseId: String? = null
+    private var lastBannerResponseId: String? = null
 
-  fun isNetworkAvailable(): Boolean {
-    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
-    val network = cm.activeNetwork ?: return false
-    val caps = cm.getNetworkCapabilities(network) ?: return false
-    return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-  }
-
-  fun preloadRewardedVideo() {
-    if (!isInitialized) return
-    try {
-      TapsellPlus.requestRewardedVideoAd(
-        context,
-        TapsellConfig.ZONE_REWARDED_VIDEO,
-        object : AdRequestCallback() {
-          override fun response(responseId: String?) {
-            lastRewardedResponseId = responseId
-            _isAdReady.value = true
-            Log.d(TAG, "Rewarded video ready. responseId=$responseId")
-          }
-          override fun error(message: String?) {
-            _isAdReady.value = false
-            Log.e(TAG, "Rewarded video error: $message")
-          }
-        }
-      )
-    } catch (e: Exception) {
-      Log.e(TAG, "preloadRewardedVideo exception: ${e.message}", e)
-    }
-  }
-
-  fun preloadStandardBanner() {
-    if (!isInitialized) return
-    try {
-      TapsellPlus.requestStandardBannerAd(
-        context,
-        TapsellConfig.ZONE_STANDARD_BANNER,
-        TapsellPlusBannerType.BANNER_320x50,
-        object : AdRequestCallback() {
-          override fun response(responseId: String?) {
-            lastStandardBannerResponseId = responseId
-            Log.d(TAG, "Standard banner ready. responseId=$responseId")
-          }
-          override fun error(message: String?) {
-            Log.e(TAG, "Standard banner error: $message")
-          }
-        }
-      )
-    } catch (e: Exception) {
-      Log.e(TAG, "preloadStandardBanner exception: ${e.message}", e)
-    }
-  }
-
-  fun preloadInstantBanner() {
-    if (!isInitialized) return
-    try {
-      TapsellPlus.requestInstantBannerAd(
-        context,
-        TapsellConfig.ZONE_INSTANT_BANNER,
-        TapsellPlusBannerType.BANNER_320x50,
-        object : AdRequestCallback() {
-          override fun response(responseId: String?) {
-            lastInstantBannerResponseId = responseId
-            Log.d(TAG, "Instant banner ready. responseId=$responseId")
-          }
-          override fun error(message: String?) {
-            Log.e(TAG, "Instant banner error: $message")
-          }
-        }
-      )
-    } catch (e: Exception) {
-      Log.e(TAG, "preloadInstantBanner exception: ${e.message}", e)
-    }
-  }
-
-  fun requestRewardedAd(
-    isVip: Boolean,
-    onAdAvailable: () -> Unit,
-    onAdNotAvailable: (reason: String) -> Unit
-  ) {
-    if (isVip) { onAdNotAvailable("VIP users do not receive ads."); return }
-    if (!isNetworkAvailable()) { onAdNotAvailable("اتصال به اینترنت برقرار نیست"); return }
-    if (!TapsellConfig.isConfigured) { onAdNotAvailable("کلیدهای تپسل پیکربندی نشده‌اند"); return }
-    if (!isInitialized) { onAdNotAvailable("تپسل هنوز آماده نشده. لطفاً چند لحظه بعد امتحان کن."); return }
-
-    if (lastRewardedResponseId != null && _isAdReady.value) {
-      onAdAvailable(); return
-    }
-
-    try {
-      TapsellPlus.requestRewardedVideoAd(
-        context,
-        TapsellConfig.ZONE_REWARDED_VIDEO,
-        object : AdRequestCallback() {
-          override fun response(responseId: String?) {
-            lastRewardedResponseId = responseId
-            _isAdReady.value = true
-            onAdAvailable()
-          }
-          override fun error(message: String?) {
-            _isAdReady.value = false
-            onAdNotAvailable(message ?: "خطا در دریافت تبلیغ")
-          }
-        }
-      )
-    } catch (e: Exception) {
-      onAdNotAvailable("خطای غیرمنتظره: ${e.message}")
-    }
-  }
-
-  fun showRewardedAd(
-    activity: Activity,
-    isVip: Boolean,
-    onRewardEarned: () -> Unit,
-    onError: (String) -> Unit
-  ) {
-    if (isVip) { onError("کاربران VIP نیازی به مشاهده تبلیغ ندارند"); return }
-
-    val responseId = lastRewardedResponseId
-    if (responseId.isNullOrBlank()) {
-      onError("تبلیغ هنوز آماده نیست. لطفاً دوباره تلاش کن."); return
-    }
-
-    try {
-      TapsellPlus.showRewardedVideoAd(
-        activity,
-        responseId,
-        object : AdShowListener() {
-          override fun onRewarded(adNetwork: AdNetworks, responseId: String?) {
-            Log.d(TAG, "onRewarded: $adNetwork")
-            onRewardEarned()
-          }
-
-          override fun onClosed(adNetwork: AdNetworks, responseId: String?) {
-            lastRewardedResponseId = null
-            _isAdReady.value = false
+    /**
+     * مقداردهی اولیه تپسل. این متد باید در Application.onCreate صدا زده شود.
+     * @param appKey کلید اپلیکیشن از پنل تپسل
+     */
+    fun initialize(appKey: String) {
+        if (isInitialized) return
+        try {
+            // در SDK جدید، مقداردهی اولیه به این صورت انجام می‌شود
+            // اگر از View استفاده می‌کنید، Tapsell.init در MainActivity هم صدا زده می‌شود
+            isInitialized = true
+            Log.i(TAG, "Tapsell Mediation SDK initialized")
             preloadRewardedVideo()
-          }
-
-          override fun onError(adNetwork: AdNetworks, errorMessage: String?) {
-            Log.e(TAG, "Ad show error: $errorMessage")
-            onError(errorMessage ?: "خطا در نمایش تبلیغ")
-          }
+        } catch (e: Exception) {
+            Log.e(TAG, "Tapsell init failed: ${e.message}", e)
         }
-      )
-    } catch (e: Exception) {
-      onError("خطا در نمایش تبلیغ: ${e.message}")
     }
-  }
+
+    fun isNetworkAvailable(): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+        val network = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(network) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    /**
+     * پیش‌بارگذاری تبلیغ جایزه‌ای (Rewarded Video)
+     * در SDK جدید از متد requestRewardedAd استفاده می‌شود.
+     */
+    fun preloadRewardedVideo() {
+        if (!isInitialized) return
+        try {
+            Tapsell.requestRewardedAd(
+                TapsellConfig.ZONE_REWARDED_VIDEO,
+                object : RequestResultListener {
+                    override fun onAdAvailable(adId: String) {
+                        lastRewardedResponseId = adId
+                        _isAdReady.value = true
+                        Log.d(TAG, "Rewarded ad ready. adId=$adId")
+                    }
+
+                    override fun onNoAdAvailable() {
+                        _isAdReady.value = false
+                        Log.w(TAG, "No rewarded ad available")
+                    }
+
+                    override fun onError(message: String) {
+                        _isAdReady.value = false
+                        Log.e(TAG, "Rewarded ad error: $message")
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "preloadRewardedVideo exception: ${e.message}", e)
+        }
+    }
+
+    /**
+     * درخواست تبلیغ جایزه‌ای با callback
+     */
+    fun requestRewardedAd(
+        isVip: Boolean,
+        onAdAvailable: () -> Unit,
+        onAdNotAvailable: (reason: String) -> Unit
+    ) {
+        if (isVip) { onAdNotAvailable("VIP users do not receive ads."); return }
+        if (!isNetworkAvailable()) { onAdNotAvailable("اتصال به اینترنت برقرار نیست"); return }
+        if (!isInitialized) { onAdNotAvailable("تپسل هنوز آماده نشده"); return }
+
+        if (lastRewardedResponseId != null && _isAdReady.value) {
+            onAdAvailable(); return
+        }
+
+        try {
+            Tapsell.requestRewardedAd(
+                TapsellConfig.ZONE_REWARDED_VIDEO,
+                object : RequestResultListener {
+                    override fun onAdAvailable(adId: String) {
+                        lastRewardedResponseId = adId
+                        _isAdReady.value = true
+                        onAdAvailable()
+                    }
+
+                    override fun onNoAdAvailable() {
+                        _isAdReady.value = false
+                        onAdNotAvailable("تبلیغی موجود نیست")
+                    }
+
+                    override fun onError(message: String) {
+                        _isAdReady.value = false
+                        onAdNotAvailable(message)
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            onAdNotAvailable("خطای غیرمنتظره: ${e.message}")
+        }
+    }
+
+    /**
+     * نمایش تبلیغ جایزه‌ای. باید از Activity صدا زده شود.
+     */
+    fun showRewardedAd(
+        activity: Activity,
+        isVip: Boolean,
+        onRewardEarned: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (isVip) { onError("کاربران VIP نیازی به مشاهده تبلیغ ندارند"); return }
+
+        val adId = lastRewardedResponseId
+        if (adId.isNullOrBlank()) {
+            onError("تبلیغ هنوز آماده نیست. لطفاً دوباره تلاش کن."); return
+        }
+
+        try {
+            Tapsell.showRewardedAd(
+                activity,
+                adId,
+                object : AdShowListener {
+                    override fun onRewarded(completed: Boolean) {
+                        Log.d(TAG, "onRewarded: completed=$completed")
+                        if (completed) onRewardEarned()
+                    }
+
+                    override fun onClosed() {
+                        Log.d(TAG, "Rewarded ad closed")
+                        lastRewardedResponseId = null
+                        _isAdReady.value = false
+                        preloadRewardedVideo()
+                    }
+
+                    override fun onError(message: String) {
+                        Log.e(TAG, "Show error: $message")
+                        onError(message)
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            onError("خطا در نمایش تبلیغ: ${e.message}")
+        }
+    }
+
+    /**
+     * پیش‌بارگذاری بنر استاندارد
+     * در SDK جدید، بنرها از طریق BannerAdViewContainer در UI نمایش داده می‌شوند.
+     */
+    fun preloadBanner() {
+        if (!isInitialized) return
+        try {
+            Tapsell.requestBannerAd(
+                TapsellConfig.ZONE_STANDARD_BANNER,
+                object : RequestResultListener {
+                    override fun onAdAvailable(adId: String) {
+                        lastBannerResponseId = adId
+                        Log.d(TAG, "Banner ready. adId=$adId")
+                    }
+                    override fun onNoAdAvailable() { Log.w(TAG, "No banner available") }
+                    override fun onError(message: String) { Log.e(TAG, "Banner error: $message") }
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "preloadBanner exception: ${e.message}", e)
+        }
+    }
 }
