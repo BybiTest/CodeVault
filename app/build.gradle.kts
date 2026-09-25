@@ -1,4 +1,4 @@
-import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+گimport com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 
 plugins {
   alias(libs.plugins.android.application)
@@ -20,6 +20,12 @@ android {
     versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    addManifestPlaceholders(
+      mapOf(
+        "TapsellMediationAppKey" to "papdggdngktkkhloocmbmngenrjirdgrfhcrfjksqcgfatmrfrmfgmtngfqgcepmqirmhb"
+      )
+    )
   }
 
   signingConfigs {
@@ -99,11 +105,9 @@ dependencies {
   implementation(libs.okhttp)
   implementation(libs.retrofit)
 
-  // تپسل (Mediation SDK)
   implementation(libs.tapsell.mediation)
   implementation(libs.tapsell.mediation.legacy)
 
-  // Poolakey (کافه‌بازار)
   implementation(libs.poolakey)
 
   testImplementation(libs.androidx.compose.ui.test.junit4)
