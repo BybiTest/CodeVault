@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.model.FileEntity
 import com.example.data.model.ProjectEntity
+import com.example.ui.components.AdBannerView
 import com.example.ui.components.CodeVaultBottomNav
 import com.example.ui.components.CodeVaultTopBar
 import com.example.ui.localization.LocalAppStrings
@@ -34,7 +35,8 @@ fun StarredProjectsScreen(
   projects: List<ProjectEntity>,
   onBack: () -> Unit,
   onNavigate: (String) -> Unit,
-  onToggleStar: (String) -> Unit
+  onToggleStar: (String) -> Unit,
+  isVip: Boolean = false
 ) {
   val strings = LocalAppStrings.current
 
@@ -78,6 +80,14 @@ fun StarredProjectsScreen(
           .padding(paddingValues),
         contentPadding = PaddingValues(top = 12.dp, bottom = 80.dp)
       ) {
+        // ⬇️ تبلیغ بنر استاندارد (بالای لیست)
+        item {
+          AdBannerView(
+            isVip = isVip,
+            onUpgradeClick = { onNavigate(Screen.VipPurchase.route) }
+          )
+        }
+
         items(projects, key = { it.id }) { project ->
           ProjectCardItem(
             project = project,
@@ -95,7 +105,9 @@ fun StarredFilesScreen(
   files: List<FileEntity>,
   onBack: () -> Unit,
   onFileClick: (FileEntity) -> Unit,
-  onToggleStar: (String) -> Unit
+  onToggleStar: (String) -> Unit,
+  isVip: Boolean = false,
+  onNavigate: (String) -> Unit = {}
 ) {
   val strings = LocalAppStrings.current
 
@@ -130,6 +142,14 @@ fun StarredFilesScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
       ) {
+        // ⬇️ تبلیغ بنر استاندارد (بالای لیست)
+        item {
+          AdBannerView(
+            isVip = isVip,
+            onUpgradeClick = { onNavigate(Screen.VipPurchase.route) }
+          )
+        }
+
         items(files, key = { it.id }) { file ->
           Card(
             modifier = Modifier
