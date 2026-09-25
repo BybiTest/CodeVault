@@ -8,8 +8,6 @@ import android.util.Log
 import ir.tapsell.mediation.Tapsell
 import ir.tapsell.mediation.ad.request.RequestResultListener
 import ir.tapsell.mediation.ad.show.AdShowListener
-import ir.tapsell.mediation.ad.show.ShowResultListener
-import ir.tapsell.mediation.ad.views.bnr.BannerAdViewContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,17 +25,11 @@ class TapsellAdManager(private val context: Context) {
     private var lastRewardedResponseId: String? = null
     private var lastBannerResponseId: String? = null
 
-    /**
-     * مقداردهی اولیه تپسل. این متد باید در Application.onCreate صدا زده شود.
-     * @param appKey کلید اپلیکیشن از پنل تپسل
-     */
-    fun initialize(appKey: String) {
+    fun initialize() {
         if (isInitialized) return
         try {
-            // در SDK جدید، مقداردهی اولیه به این صورت انجام می‌شود
-            // اگر از View استفاده می‌کنید، Tapsell.init در MainActivity هم صدا زده می‌شود
             isInitialized = true
-            Log.i(TAG, "Tapsell Mediation SDK initialized")
+            Log.i(TAG, "Tapsell Mediation SDK ready")
             preloadRewardedVideo()
         } catch (e: Exception) {
             Log.e(TAG, "Tapsell init failed: ${e.message}", e)
@@ -51,10 +43,6 @@ class TapsellAdManager(private val context: Context) {
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    /**
-     * پیش‌بارگذاری تبلیغ جایزه‌ای (Rewarded Video)
-     * در SDK جدید از متد requestRewardedAd استفاده می‌شود.
-     */
     fun preloadRewardedVideo() {
         if (!isInitialized) return
         try {
@@ -66,12 +54,10 @@ class TapsellAdManager(private val context: Context) {
                         _isAdReady.value = true
                         Log.d(TAG, "Rewarded ad ready. adId=$adId")
                     }
-
                     override fun onNoAdAvailable() {
                         _isAdReady.value = false
                         Log.w(TAG, "No rewarded ad available")
                     }
-
                     override fun onError(message: String) {
                         _isAdReady.value = false
                         Log.e(TAG, "Rewarded ad error: $message")
@@ -83,9 +69,6 @@ class TapsellAdManager(private val context: Context) {
         }
     }
 
-    /**
-     * درخواست تبلیغ جایزه‌ای با callback
-     */
     fun requestRewardedAd(
         isVip: Boolean,
         onAdAvailable: () -> Unit,
@@ -108,12 +91,10 @@ class TapsellAdManager(private val context: Context) {
                         _isAdReady.value = true
                         onAdAvailable()
                     }
-
                     override fun onNoAdAvailable() {
                         _isAdReady.value = false
                         onAdNotAvailable("تبلیغی موجود نیست")
                     }
-
                     override fun onError(message: String) {
                         _isAdReady.value = false
                         onAdNotAvailable(message)
@@ -125,9 +106,6 @@ class TapsellAdManager(private val context: Context) {
         }
     }
 
-    /**
-     * نمایش تبلیغ جایزه‌ای. باید از Activity صدا زده شود.
-     */
     fun showRewardedAd(
         activity: Activity,
         isVip: Boolean,
@@ -150,14 +128,12 @@ class TapsellAdManager(private val context: Context) {
                         Log.d(TAG, "onRewarded: completed=$completed")
                         if (completed) onRewardEarned()
                     }
-
                     override fun onClosed() {
                         Log.d(TAG, "Rewarded ad closed")
                         lastRewardedResponseId = null
                         _isAdReady.value = false
                         preloadRewardedVideo()
                     }
-
                     override fun onError(message: String) {
                         Log.e(TAG, "Show error: $message")
                         onError(message)
@@ -169,10 +145,6 @@ class TapsellAdManager(private val context: Context) {
         }
     }
 
-    /**
-     * پیش‌بارگذاری بنر استاندارد
-     * در SDK جدید، بنرها از طریق BannerAdViewContainer در UI نمایش داده می‌شوند.
-     */
     fun preloadBanner() {
         if (!isInitialized) return
         try {
