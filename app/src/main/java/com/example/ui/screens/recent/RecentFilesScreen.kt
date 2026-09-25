@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.model.FileEntity
 import com.example.data.model.RecentFileEntity
+import com.example.ui.components.AdBannerView
 import com.example.ui.components.CodeVaultBottomNav
 import com.example.ui.components.CodeVaultTopBar
 import com.example.ui.localization.LocalAppStrings
@@ -32,7 +33,8 @@ import java.util.*
 fun RecentFilesScreen(
   recentFiles: List<Pair<RecentFileEntity, FileEntity?>>,
   onNavigate: (String) -> Unit,
-  onFileClick: (FileEntity) -> Unit
+  onFileClick: (FileEntity) -> Unit,
+  isVip: Boolean = false
 ) {
   val strings = LocalAppStrings.current
 
@@ -81,6 +83,14 @@ fun RecentFilesScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
       ) {
+        // ⬇️ تبلیغ بنر استاندارد (بالای لیست)
+        item {
+          AdBannerView(
+            isVip = isVip,
+            onUpgradeClick = { onNavigate(Screen.VipPurchase.route) }
+          )
+        }
+
         items(recentFiles, key = { it.first.id }) { (recent, file) ->
           if (file != null) {
             val dateFormatted = SimpleDateFormat("HH:mm - yyyy/MM/dd", Locale.getDefault()).format(Date(recent.accessedAt))
