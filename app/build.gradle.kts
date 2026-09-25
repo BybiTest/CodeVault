@@ -99,8 +99,9 @@ dependencies {
   implementation(libs.okhttp)
   implementation(libs.retrofit)
 
-  // تپسل
-  implementation(libs.tapsell.plus)
+  // تپسل (Mediation SDK)
+  implementation(libs.tapsell.mediation)
+  implementation(libs.tapsell.mediation.legacy)
 
   // Poolakey (کافه‌بازار)
   implementation(libs.poolakey)
