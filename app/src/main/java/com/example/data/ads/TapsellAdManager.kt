@@ -115,8 +115,8 @@ class TapsellAdManager(private val context: Context) {
 
         try {
             Tapsell.showRewardedAd(
-                activity,
                 adId,
+                activity,
                 object : AdStateListener.Rewarded {
                     override fun onAdImpression() {
                         Log.d(TAG, "onAdImpression")
