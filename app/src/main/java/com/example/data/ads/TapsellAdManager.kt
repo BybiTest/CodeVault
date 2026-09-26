@@ -6,8 +6,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
 import ir.tapsell.mediation.Tapsell
+import ir.tapsell.mediation.ad.AdStateListener
 import ir.tapsell.mediation.ad.request.RequestResultListener
-import ir.tapsell.mediation.ad.show.AdShowListener
+import ir.tapsell.mediation.ad.show.AdShowCompletionState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +24,6 @@ class TapsellAdManager(private val context: Context) {
     val isAdReady: StateFlow<Boolean> = _isAdReady.asStateFlow()
 
     private var lastRewardedResponseId: String? = null
-    private var lastBannerResponseId: String? = null
 
     fun initialize() {
         if (isInitialized) return
@@ -49,18 +49,15 @@ class TapsellAdManager(private val context: Context) {
             Tapsell.requestRewardedAd(
                 TapsellConfig.ZONE_REWARDED_VIDEO,
                 object : RequestResultListener {
-                    override fun onAdAvailable(adId: String) {
+                    override fun onSuccess(adId: String) {
                         lastRewardedResponseId = adId
                         _isAdReady.value = true
                         Log.d(TAG, "Rewarded ad ready. adId=$adId")
                     }
-                    override fun onNoAdAvailable() {
+
+                    override fun onFailure(message: String) {
                         _isAdReady.value = false
-                        Log.w(TAG, "No rewarded ad available")
-                    }
-                    override fun onError(message: String) {
-                        _isAdReady.value = false
-                        Log.e(TAG, "Rewarded ad error: $message")
+                        Log.w(TAG, "No rewarded ad available: $message")
                     }
                 }
             )
@@ -86,16 +83,13 @@ class TapsellAdManager(private val context: Context) {
             Tapsell.requestRewardedAd(
                 TapsellConfig.ZONE_REWARDED_VIDEO,
                 object : RequestResultListener {
-                    override fun onAdAvailable(adId: String) {
+                    override fun onSuccess(adId: String) {
                         lastRewardedResponseId = adId
                         _isAdReady.value = true
                         onAdAvailable()
                     }
-                    override fun onNoAdAvailable() {
-                        _isAdReady.value = false
-                        onAdNotAvailable("تبلیغی موجود نیست")
-                    }
-                    override fun onError(message: String) {
+
+                    override fun onFailure(message: String) {
                         _isAdReady.value = false
                         onAdNotAvailable(message)
                     }
@@ -123,44 +117,35 @@ class TapsellAdManager(private val context: Context) {
             Tapsell.showRewardedAd(
                 activity,
                 adId,
-                object : AdShowListener {
-                    override fun onRewarded(completed: Boolean) {
-                        Log.d(TAG, "onRewarded: completed=$completed")
-                        if (completed) onRewardEarned()
+                object : AdStateListener.Rewarded {
+                    override fun onAdImpression() {
+                        Log.d(TAG, "onAdImpression")
                     }
-                    override fun onClosed() {
-                        Log.d(TAG, "Rewarded ad closed")
+
+                    override fun onAdClicked() {
+                        Log.d(TAG, "onAdClicked")
+                    }
+
+                    override fun onRewarded() {
+                        Log.d(TAG, "onRewarded - user earned reward")
+                        onRewardEarned()
+                    }
+
+                    override fun onAdClosed(completionState: AdShowCompletionState) {
+                        Log.d(TAG, "onAdClosed: $completionState")
                         lastRewardedResponseId = null
                         _isAdReady.value = false
                         preloadRewardedVideo()
                     }
-                    override fun onError(message: String) {
-                        Log.e(TAG, "Show error: $message")
+
+                    override fun onAdFailed(message: String) {
+                        Log.e(TAG, "onAdFailed: $message")
                         onError(message)
                     }
                 }
             )
         } catch (e: Exception) {
             onError("خطا در نمایش تبلیغ: ${e.message}")
-        }
-    }
-
-    fun preloadBanner() {
-        if (!isInitialized) return
-        try {
-            Tapsell.requestBannerAd(
-                TapsellConfig.ZONE_STANDARD_BANNER,
-                object : RequestResultListener {
-                    override fun onAdAvailable(adId: String) {
-                        lastBannerResponseId = adId
-                        Log.d(TAG, "Banner ready. adId=$adId")
-                    }
-                    override fun onNoAdAvailable() { Log.w(TAG, "No banner available") }
-                    override fun onError(message: String) { Log.e(TAG, "Banner error: $message") }
-                }
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "preloadBanner exception: ${e.message}", e)
         }
     }
 }
