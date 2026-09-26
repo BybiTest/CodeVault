@@ -1,8 +1,6 @@
 package com.example.ui.components
 
-import android.app.Activity
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,10 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.data.ads.TapsellConfig
 import com.example.ui.theme.VipGold
-import ir.tapsell.plus.AdHolder
-import ir.tapsell.plus.AdRequestCallback
-import ir.tapsell.plus.TapsellPlus
-import ir.tapsell.plus.TapsellPlusBannerType
+import ir.tapsell.mediation.ad.views.bnr.BannerAdViewContainer
 
 /**
  * بنر تبلیغاتی تپسل با دکمه‌ی حذف تبلیغ
@@ -39,7 +34,6 @@ fun AdBannerView(
   if (isVip) return
 
   val context = LocalContext.current
-  val activity = context as? Activity ?: return
 
   Card(
     modifier = modifier
@@ -50,51 +44,24 @@ fun AdBannerView(
     shape = RoundedCornerShape(14.dp)
   ) {
     Column {
-      // بنر تبلیغاتی تپسل
+      // بنر تبلیغاتی تپسل (Mediation SDK)
       AndroidView(
         modifier = Modifier
           .fillMaxWidth()
           .height(50.dp),
         factory = { ctx ->
-          FrameLayout(ctx).apply {
+          BannerAdViewContainer(ctx).apply {
             layoutParams = ViewGroup.LayoutParams(
               ViewGroup.LayoutParams.MATCH_PARENT,
               ViewGroup.LayoutParams.WRAP_CONTENT
             )
           }
         },
-        update = { frameLayout ->
-          if (frameLayout.tag != TapsellConfig.ZONE_STANDARD_BANNER) {
-            frameLayout.tag = TapsellConfig.ZONE_STANDARD_BANNER
-            frameLayout.removeAllViews()
-
-            try {
-              val adHolder = AdHolder(frameLayout)
-
-              TapsellPlus.requestStandardBannerAd(
-                activity,
-                TapsellConfig.ZONE_STANDARD_BANNER,
-                TapsellPlusBannerType.BANNER_320x50,
-                object : AdRequestCallback() {
-                  override fun response(responseId: String?) {
-                    responseId?.let {
-                      TapsellPlus.showStandardBannerAd(
-                        activity,
-                        it,
-                        TapsellPlusBannerType.BANNER_320x50,
-                        adHolder
-                      )
-                    }
-                  }
-
-                  override fun error(message: String?) {
-                    // اگه خطا داد، چیزی نشون داده نمیشه
-                  }
-                }
-              )
-            } catch (e: Exception) {
-              // اگه خطا داد، چیزی نشون داده نمیشه
-            }
+        update = { bannerView ->
+          try {
+            bannerView.loadAd(TapsellConfig.ZONE_STANDARD_BANNER)
+          } catch (e: Exception) {
+            // اگه خطا داد، چیزی نشون داده نمیشه
           }
         }
       )
