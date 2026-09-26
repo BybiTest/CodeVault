@@ -96,7 +96,8 @@ fun CodeVaultNavGraph(
         projects = allProjects,
         onNavigate = { route -> navController.navigate(route) },
         onToggleStar = { id -> viewModel.toggleStarProject(id) },
-        onDeleteProject = { id -> viewModel.deleteProject(id) }
+        onDeleteProject = { id -> viewModel.deleteProject(id) },
+        isVip = isVip
       )
     }
 
@@ -169,7 +170,8 @@ fun CodeVaultNavGraph(
         onDeleteFolder = { id -> viewModel.deleteFolder(id) },
         onDuplicateFile = { id -> viewModel.duplicateFile(id) },
         onRenameFile = { id, name -> viewModel.renameFile(id, name) },
-        onRenameFolder = { id, name -> viewModel.renameFolder(id, name) }
+        onRenameFolder = { id, name -> viewModel.renameFolder(id, name) },
+        isVip = isVip
       )
     }
 
@@ -330,7 +332,9 @@ fun CodeVaultNavGraph(
           viewModel.recordRecentAccess(file.id, file.projectId)
           navController.navigate(Screen.CodeEditor.createRoute(file.id))
         },
-        onToggleStar = { id -> viewModel.toggleStarFile(id) }
+        onToggleStar = { id -> viewModel.toggleStarFile(id) },
+        isVip = isVip,
+        onNavigate = { route -> navController.navigate(route) }
       )
     }
 
@@ -340,7 +344,8 @@ fun CodeVaultNavGraph(
         projects = starredProjects,
         onBack = { navController.popBackStack() },
         onNavigate = { route -> navController.navigate(route) },
-        onToggleStar = { id -> viewModel.toggleStarProject(id) }
+        onToggleStar = { id -> viewModel.toggleStarProject(id) },
+        isVip = isVip
       )
     }
 

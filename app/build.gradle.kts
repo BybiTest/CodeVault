@@ -13,7 +13,7 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.codevault.app"
+    applicationId = "com.aistudio.challengearena.vxpqz"
     minSdk = 24
     targetSdk = 36
     versionCode = 1

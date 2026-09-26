@@ -14,7 +14,6 @@ import com.example.ui.theme.AppThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
 
@@ -109,10 +108,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
   // Projects
   fun createProject(name: String, description: String, template: String, onCreated: (ProjectEntity) -> Unit) {
-    viewModelScope.launch {
-      val project = withContext(Dispatchers.IO) {
-        projectRepo.createProject(name, description, template)
-      }
+    viewModelScope.launch(Dispatchers.IO) {
+      val project = projectRepo.createProject(name, description, template)
       refreshStorageStats()
       onCreated(project)
     }
@@ -269,10 +266,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   fun exportProjectZip(projectId: String, destinationFile: File, onComplete: (File?) -> Unit) {
-    viewModelScope.launch {
-      val success = withContext(Dispatchers.IO) {
-        projectRepo.exportProjectZip(projectId, destinationFile)
-      }
+    viewModelScope.launch(Dispatchers.IO) {
+      val success = projectRepo.exportProjectZip(projectId, destinationFile)
       onComplete(if (success) destinationFile else null)
     }
   }
