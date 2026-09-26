@@ -531,7 +531,11 @@ fun CodeVaultNavGraph(
       VipPurchaseScreen(
         plans = viewModel.availablePlans,
         billingResult = billingResult,
-        onPurchasePlan = { planId -> viewModel.purchaseVipPlan(planId) },
+        onPurchasePlan = { planId ->
+          if (activity != null) {
+            viewModel.purchaseVipPlan(activity, planId)
+          }
+        },
         onBack = { navController.popBackStack() }
       )
     }
@@ -540,7 +544,11 @@ fun CodeVaultNavGraph(
     composable(Screen.RestorePurchase.route) {
       RestorePurchaseScreen(
         billingResult = billingResult,
-        onRestore = { viewModel.restoreVipPurchases() },
+        onRestore = {
+          if (activity != null) {
+            viewModel.restoreVipPurchases(activity)
+          }
+        },
         onBack = { navController.popBackStack() }
       )
     }
