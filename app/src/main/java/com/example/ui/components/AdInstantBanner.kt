@@ -21,7 +21,9 @@ fun AdInstantBanner(
     val context = LocalContext.current
     val activity = context as? Activity ?: return
     val app = context.applicationContext as CodeVaultApplication
-    val container = remember { app.tapsellAdManager.createInstantBannerContainer() }
+    val container = remember(activity) {
+        app.tapsellAdManager.createInstantBannerContainer(activity)
+    }
     var adId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -35,11 +37,7 @@ fun AdInstantBanner(
 
     DisposableEffect(Unit) {
         onDispose {
-            adId?.let {
-                try {
-                    ir.tapsell.mediation.Tapsell.destroyBannerAd(it)
-                } catch (_: Exception) {}
-            }
+            adId?.let { app.tapsellAdManager.destroyInstantBanner(it) }
         }
     }
 
