@@ -23,7 +23,7 @@ android {
 
     addManifestPlaceholders(
       mapOf(
-        "TapsellMediationAppKey" to "papdggdngktkkhloocmbmngenrjirdgrfhcrfjksqcgfatmrfrmfgmtngfqgcepmqirmhb"
+        "TapsellMediationAppKey" to "76798342-99a7-4a5f-bf5a-60a088d5dcfb"
       )
     )
   }
