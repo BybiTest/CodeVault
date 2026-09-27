@@ -4,10 +4,10 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import ir.tapsell.mediation.Tapsell
+import ir.tapsell.mediation.ad.AdStateListener
 import ir.tapsell.mediation.ad.request.BannerSize
 import ir.tapsell.mediation.ad.request.RequestResultListener
 import ir.tapsell.mediation.ad.show.AdShowCompletionState
-import ir.tapsell.mediation.ad.show.AdStateListener
 import ir.tapsell.mediation.ad.views.banner.BannerContainer
 
 class TapsellAdManager(private val context: Context) {
@@ -162,6 +162,12 @@ class TapsellAdManager(private val context: Context) {
                 adId,
                 activity,
                 object : AdStateListener.Rewarded {
+                    override fun onAdImpression() {
+                        Log.d(TAG, "onAdImpression")
+                    }
+                    override fun onAdClicked() {
+                        Log.d(TAG, "onAdClicked")
+                    }
                     override fun onRewarded() {
                         Log.d(TAG, "onRewarded")
                         onRewardEarned()
