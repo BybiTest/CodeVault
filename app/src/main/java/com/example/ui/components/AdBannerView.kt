@@ -1,101 +1,189 @@
-package com.example.ui.components
+package com.example.data.ads
 
 import android.app.Activity
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Campaign
-import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import com.example.CodeVaultApplication
-import com.example.ui.theme.VipGold
+import android.content.Context
+import android.util.Log
+import ir.tapsell.mediation.Tapsell
+import ir.tapsell.mediation.ad.AdStateListener
+import ir.tapsell.mediation.ad.request.BannerSize
+import ir.tapsell.mediation.ad.request.RequestResultListener
+import ir.tapsell.mediation.ad.show.AdShowCompletionState
+import ir.tapsell.mediation.ad.views.banner.BannerContainer
 
-@Composable
-fun AdBannerView(
-    isVip: Boolean,
-    onUpgradeClick: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    if (isVip) return
+class TapsellAdManager(private val context: Context) {
 
-    val context = LocalContext.current
-    val activity = context as? Activity ?: return
-    val app = context.applicationContext as CodeVaultApplication
-    val container = remember { app.tapsellAdManager.createStandardBannerContainer() }
-    var adId by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        app.tapsellAdManager.loadStandardBanner(
-            container = container,
-            activity = activity,
-            onSuccess = { adId = it },
-            onFailure = { /* Ad failed to load */ }
-        )
+    companion object {
+        private const val TAG = "TapsellAdManager"
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            adId?.let { app.tapsellAdManager.destroyStandardBanner(it) }
+    private var lastRewardedAdId: String? = null
+
+    fun initialize() {
+        Log.i(TAG, "Tapsell Mediation SDK initialized")
+        preloadRewardedVideo()
+    }
+
+    // ============ بنر استاندارد ============
+    fun createStandardBannerContainer(): BannerContainer {
+        return BannerContainer(context)
+    }
+
+    fun loadStandardBanner(
+        container: BannerContainer,
+        activity: Activity,
+        onSuccess: (String) -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) {
+        try {
+            Tapsell.requestBannerAd(
+                TapsellConfig.ZONE_STANDARD_BANNER,
+                BannerSize.BANNER_320_50,
+                activity,
+                object : RequestResultListener {
+                    override fun onSuccess(adId: String) {
+                        Tapsell.showBannerAd(adId, container, activity)
+                        onSuccess(adId)
+                    }
+                    override fun onFailure(message: String) {
+                        Log.e(TAG, "Banner error: $message")
+                        onFailure(message)
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            onFailure(e.message ?: "Unknown error")
         }
     }
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-            .testTag("ad_banner_standard"),
-        color = MaterialTheme.colorScheme.surfaceVariant
+    fun destroyStandardBanner(adId: String) {
+        try {
+            Tapsell.destroyBannerAd(adId)
+        } catch (e: Exception) {
+            Log.e(TAG, "destroy error: ${e.message}")
+        }
+    }
+
+    // ============ بنر آنی ============
+    fun createInstantBannerContainer(): BannerContainer {
+        return BannerContainer(context)
+    }
+
+    fun loadInstantBanner(
+        container: BannerContainer,
+        activity: Activity,
+        onSuccess: (String) -> Unit = {},
+        onFailure: (String) -> Unit = {}
     ) {
-        Column {
-            AndroidView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                factory = { container }
+        try {
+            Tapsell.requestBannerAd(
+                TapsellConfig.ZONE_INSTANT_BANNER,
+                BannerSize.BANNER_320_50,
+                activity,
+                object : RequestResultListener {
+                    override fun onSuccess(adId: String) {
+                        Tapsell.showBannerAd(adId, container, activity)
+                        onSuccess(adId)
+                    }
+                    override fun onFailure(message: String) {
+                        onFailure(message)
+                    }
+                }
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onUpgradeClick() }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Campaign, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                        }
+        } catch (e: Exception) {
+            onFailure(e.message ?: "Unknown error")
+        }
+    }
+
+    // ============ ویدیو جایزه‌ای ============
+    fun preloadRewardedVideo() {
+        try {
+            Tapsell.requestRewardedAd(
+                TapsellConfig.ZONE_REWARDED_VIDEO,
+                object : RequestResultListener {
+                    override fun onSuccess(adId: String) {
+                        lastRewardedAdId = adId
+                        Log.d(TAG, "Rewarded ad ready. adId=$adId")
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text("فضای تبلیغاتی", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
-                        Text("حذف تمام تبلیغات با خرید اشتراک VIP", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    override fun onFailure(message: String) {
+                        Log.e(TAG, "Rewarded video error: $message")
                     }
                 }
-                TextButton(onClick = onUpgradeClick, colors = ButtonDefaults.textButtonColors(contentColor = VipGold)) {
-                    Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("VIP", fontWeight = FontWeight.Bold)
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "preloadRewardedVideo exception: ${e.message}", e)
+        }
+    }
+
+    fun requestRewardedAd(
+        isVip: Boolean,
+        onAdAvailable: () -> Unit,
+        onAdNotAvailable: (reason: String) -> Unit
+    ) {
+        if (isVip) { onAdNotAvailable("VIP users do not receive ads."); return }
+
+        if (lastRewardedAdId != null) {
+            onAdAvailable()
+            return
+        }
+
+        try {
+            Tapsell.requestRewardedAd(
+                TapsellConfig.ZONE_REWARDED_VIDEO,
+                object : RequestResultListener {
+                    override fun onSuccess(adId: String) {
+                        lastRewardedAdId = adId
+                        onAdAvailable()
+                    }
+                    override fun onFailure(message: String) {
+                        onAdNotAvailable(message)
+                    }
                 }
-            }
+            )
+        } catch (e: Exception) {
+            onAdNotAvailable("خطا: ${e.message}")
+        }
+    }
+
+    fun showRewardedAd(
+        activity: Activity,
+        isVip: Boolean,
+        onRewardEarned: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (isVip) { onError("کاربران VIP نیازی به مشاهده تبلیغ ندارند"); return }
+
+        val adId = lastRewardedAdId
+        if (adId.isNullOrBlank()) {
+            onError("تبلیغ هنوز آماده نیست. لطفاً دوباره تلاش کن."); return
+        }
+
+        try {
+            Tapsell.showRewardedAd(
+                adId,
+                activity,
+                object : AdStateListener.Rewarded {
+                    override fun onAdImpression() {
+                        Log.d(TAG, "onAdImpression")
+                    }
+                    override fun onAdClicked() {
+                        Log.d(TAG, "onAdClicked")
+                    }
+                    override fun onRewarded() {
+                        Log.d(TAG, "onRewarded")
+                        onRewardEarned()
+                    }
+                    override fun onAdClosed(completionState: AdShowCompletionState) {
+                        lastRewardedAdId = null
+                        preloadRewardedVideo()
+                    }
+                    override fun onAdFailed(message: String) {
+                        Log.e(TAG, "onAdFailed: $message")
+                        onError(message)
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            onError("خطا در نمایش تبلیغ: ${e.message}")
         }
     }
 }
