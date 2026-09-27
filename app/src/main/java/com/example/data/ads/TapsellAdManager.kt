@@ -20,20 +20,12 @@ class TapsellAdManager(private val context: Context) {
 
     fun initialize() {
         Log.i(TAG, "Tapsell Mediation SDK initialized")
-        try {
-            Tapsell.setInitializationListener {
-                Log.i(TAG, "Tapsell Mediation SDK initialization completed")
-                preloadRewardedVideo()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "setInitializationListener error: ${e.message}")
-        }
         preloadRewardedVideo()
     }
 
     // ============ بنر استاندارد ============
-    fun createStandardBannerContainer(context: Context = this.context): BannerContainer {
-        return BannerContainer(context)
+    fun createStandardBannerContainer(activity: Activity): BannerContainer {
+        return BannerContainer(activity)
     }
 
     fun loadStandardBanner(
@@ -72,8 +64,8 @@ class TapsellAdManager(private val context: Context) {
     }
 
     // ============ بنر آنی ============
-    fun createInstantBannerContainer(context: Context = this.context): BannerContainer {
-        return BannerContainer(context)
+    fun createInstantBannerContainer(activity: Activity): BannerContainer {
+        return BannerContainer(activity)
     }
 
     fun loadInstantBanner(
@@ -93,21 +85,12 @@ class TapsellAdManager(private val context: Context) {
                         onSuccess(adId)
                     }
                     override fun onFailure(message: String) {
-                        Log.e(TAG, "Instant banner error: $message")
                         onFailure(message)
                     }
                 }
             )
         } catch (e: Exception) {
             onFailure(e.message ?: "Unknown error")
-        }
-    }
-
-    fun destroyInstantBanner(adId: String) {
-        try {
-            Tapsell.destroyBannerAd(adId)
-        } catch (e: Exception) {
-            Log.e(TAG, "destroy error: ${e.message}")
         }
     }
 
