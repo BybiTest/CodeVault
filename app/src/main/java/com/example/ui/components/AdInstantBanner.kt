@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,11 +19,28 @@ fun AdInstantBanner(
     if (isVip) return
 
     val context = LocalContext.current
+    val activity = context as? Activity ?: return
     val app = context.applicationContext as CodeVaultApplication
     val container = remember { app.tapsellAdManager.createInstantBannerContainer() }
+    var adId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        app.tapsellAdManager.loadInstantBanner(container)
+        app.tapsellAdManager.loadInstantBanner(
+            container = container,
+            activity = activity,
+            onSuccess = { adId = it },
+            onFailure = { /* Ad failed to load */ }
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            adId?.let {
+                try {
+                    ir.tapsell.mediation.Tapsell.destroyBannerAd(it)
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     Surface(
