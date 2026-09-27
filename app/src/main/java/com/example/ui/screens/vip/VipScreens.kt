@@ -1,5 +1,6 @@
 package com.example.ui.screens.vip
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,8 +24,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.data.billing.BillingManager
 import com.example.data.billing.BillingResult
 import com.example.data.billing.VipPlan
 import com.example.ui.components.CodeVaultTopBar
@@ -32,15 +31,21 @@ import com.example.ui.localization.LocalAppLanguage
 import com.example.ui.localization.LocalAppStrings
 import com.example.ui.navigation.Screen
 import com.example.ui.theme.VipGold
-import com.example.ui.theme.VipGoldDark
 
 @Composable
 fun VipScreen(
   isVip: Boolean,
   onBack: () -> Unit,
-  onNavigate: (String) -> Unit
+  onNavigate: (String) -> Unit,
+  onConnectBilling: (Activity) -> Unit = {}
 ) {
   val strings = LocalAppStrings.current
+  val context = LocalContext.current
+  val activity = context as? Activity
+
+  LaunchedEffect(Unit) {
+    if (activity != null) onConnectBilling(activity)
+  }
 
   Scaffold(
     topBar = {
@@ -58,7 +63,6 @@ fun VipScreen(
         .verticalScroll(rememberScrollState()),
       verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-      // Golden VIP Header Banner
       Surface(
         modifier = Modifier
           .fillMaxWidth()
@@ -71,10 +75,7 @@ fun VipScreen(
             .fillMaxWidth()
             .background(
               Brush.verticalGradient(
-                colors = listOf(
-                  VipGold.copy(alpha = 0.25f),
-                  Color.Transparent
-                )
+                colors = listOf(VipGold.copy(alpha = 0.25f), Color.Transparent)
               )
             )
             .padding(24.dp),
@@ -110,7 +111,6 @@ fun VipScreen(
         }
       }
 
-      // Feature list
       Text(
         text = "مزایای عضویت طلایی:",
         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -133,10 +133,7 @@ fun VipScreen(
             .fillMaxWidth()
             .height(52.dp)
             .testTag("vip_upgrade_button"),
-          colors = ButtonDefaults.buttonColors(
-            containerColor = VipGold,
-            contentColor = Color.Black
-          ),
+          colors = ButtonDefaults.buttonColors(containerColor = VipGold, contentColor = Color.Black),
           shape = RoundedCornerShape(12.dp)
         ) {
           Icon(Icons.Default.WorkspacePremium, contentDescription = null)
@@ -164,9 +161,7 @@ private fun VipFeatureRow(icon: ImageVector, title: String, desc: String) {
     shape = RoundedCornerShape(12.dp)
   ) {
     Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .padding(14.dp),
+      modifier = Modifier.fillMaxWidth().padding(14.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
       Surface(
@@ -213,10 +208,7 @@ fun VipPurchaseScreen(
 
   Scaffold(
     topBar = {
-      CodeVaultTopBar(
-        title = strings.upgradeToVip,
-        onBackClick = onBack
-      )
+      CodeVaultTopBar(title = strings.upgradeToVip, onBackClick = onBack)
     }
   ) { paddingValues ->
     Column(
@@ -250,10 +242,7 @@ fun VipPurchaseScreen(
         ) {
           Column(modifier = Modifier.padding(18.dp)) {
             if (plan.isPopular) {
-              Surface(
-                color = VipGold,
-                shape = RoundedCornerShape(6.dp)
-              ) {
+              Surface(color = VipGold, shape = RoundedCornerShape(6.dp)) {
                 Text(
                   text = "پیشنهاد ویژه (محبوب‌ترین)",
                   modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -338,10 +327,7 @@ fun RestorePurchaseScreen(
 
   Scaffold(
     topBar = {
-      CodeVaultTopBar(
-        title = strings.restorePurchase,
-        onBackClick = onBack
-      )
+      CodeVaultTopBar(title = strings.restorePurchase, onBackClick = onBack)
     }
   ) { paddingValues ->
     Column(

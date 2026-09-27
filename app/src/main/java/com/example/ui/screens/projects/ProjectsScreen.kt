@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.data.model.ProjectEntity
+import com.example.ui.components.AdBannerView
 import com.example.ui.components.CodeVaultBottomNav
 import com.example.ui.components.CodeVaultTopBar
 import com.example.ui.components.ConfirmDialog
@@ -24,7 +25,8 @@ fun ProjectsScreen(
   projects: List<ProjectEntity>,
   onNavigate: (String) -> Unit,
   onToggleStar: (String) -> Unit,
-  onDeleteProject: (String) -> Unit
+  onDeleteProject: (String) -> Unit,
+  isVip: Boolean = false
 ) {
   val strings = LocalAppStrings.current
   var searchQuery by remember { mutableStateOf("") }
@@ -121,6 +123,12 @@ fun ProjectsScreen(
           label = { Text("حجم") }
         )
       }
+
+      // ⬇️ تبلیغ بنر استاندارد (بالای لیست)
+      AdBannerView(
+        isVip = isVip,
+        onUpgradeClick = { onNavigate(Screen.VipPurchase.route) }
+      )
 
       if (filteredProjects.isEmpty()) {
         Box(

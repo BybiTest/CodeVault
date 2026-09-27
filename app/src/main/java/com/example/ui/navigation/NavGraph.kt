@@ -1,6 +1,8 @@
 package com.example.ui.navigation
 
+import android.app.Activity
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -44,6 +46,9 @@ fun CodeVaultNavGraph(
   navController: NavHostController,
   viewModel: MainViewModel
 ) {
+  val context = LocalContext.current
+  val activity = context as? Activity
+
   val allProjects by viewModel.allProjects.collectAsStateWithLifecycle()
   val starredProjects by viewModel.starredProjects.collectAsStateWithLifecycle()
   val starredFiles by viewModel.starredFiles.collectAsStateWithLifecycle()
@@ -319,7 +324,9 @@ fun CodeVaultNavGraph(
         onResultClick = { item ->
           viewModel.recordRecentAccess(item.fileId, item.projectId)
           navController.navigate(Screen.CodeEditor.createRoute(item.fileId, item.lineNumber))
-        }
+        },
+        isVip = isVip,
+        onNavigate = { route -> navController.navigate(route) }
       )
     }
 
@@ -357,7 +364,8 @@ fun CodeVaultNavGraph(
         onFileClick = { file ->
           viewModel.recordRecentAccess(file.id, file.projectId)
           navController.navigate(Screen.CodeEditor.createRoute(file.id))
-        }
+        },
+        isVip = isVip
       )
     }
 
@@ -523,7 +531,11 @@ fun CodeVaultNavGraph(
       VipPurchaseScreen(
         plans = viewModel.availablePlans,
         billingResult = billingResult,
-        onPurchasePlan = { planId -> viewModel.purchaseVipPlan(planId) },
+        onPurchasePlan = { planId ->
+          if (activity != null) {
+            viewModel.purchaseVipPlan(activity, planId)
+          }
+        },
         onBack = { navController.popBackStack() }
       )
     }
@@ -532,7 +544,11 @@ fun CodeVaultNavGraph(
     composable(Screen.RestorePurchase.route) {
       RestorePurchaseScreen(
         billingResult = billingResult,
-        onRestore = { viewModel.restoreVipPurchases() },
+        onRestore = {
+          if (activity != null) {
+            viewModel.restoreVipPurchases(activity)
+          }
+        },
         onBack = { navController.popBackStack() }
       )
     }

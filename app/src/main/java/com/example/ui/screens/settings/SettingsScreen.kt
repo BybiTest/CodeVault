@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.ui.components.AdBannerView
 import com.example.ui.components.CodeVaultBottomNav
 import com.example.ui.components.CodeVaultTopBar
 import com.example.ui.localization.AppLanguage
@@ -203,6 +204,15 @@ fun SettingsScreen(
             onClick = { onNavigate(Screen.TermsOfService.route) }
           )
         }
+      }
+
+      // ⬇️ تبلیغ بنر استاندارد (پایین صفحه)
+      item {
+        Spacer(modifier = Modifier.height(8.dp))
+        AdBannerView(
+          isVip = isVip,
+          onUpgradeClick = { onNavigate(Screen.VipPurchase.route) }
+        )
       }
     }
   }

@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import android.app.Activity
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,7 +27,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
   private val billingManager = app.billingManager
   val tapsellAdManager = app.tapsellAdManager
 
-  // State flows
   val allProjects: StateFlow<List<ProjectEntity>> = projectRepo.getAllProjects()
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -45,7 +45,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
   val allBackups: StateFlow<List<BackupRecordEntity>> = projectRepo.getAllBackups()
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-  // Settings
   val themeMode: StateFlow<AppThemeMode> = settingsRepo.themeMode
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppThemeMode.METALLIC_BLACK)
 
@@ -73,41 +72,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
   val isVipActive: StateFlow<Boolean> = settingsRepo.isVipActive
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-  // Billing
   val billingResult: StateFlow<BillingResult> = billingManager.billingResult
   val availablePlans: List<VipPlan> = billingManager.availablePlans
 
-  // Storage Stats
   private val _storageStats = MutableStateFlow(StorageStats(0, 0, 0, 0L, 0L, 0L))
   val storageStats: StateFlow<StorageStats> = _storageStats.asStateFlow()
 
-  // Search Results
   private val _searchResults = MutableStateFlow<List<SearchResultItem>>(emptyList())
   val searchResults: StateFlow<List<SearchResultItem>> = _searchResults.asStateFlow()
 
   private val _isSearching = MutableStateFlow(false)
   val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
 
-  // Recent files populated with file entity
   val recentFilesWithEntity: StateFlow<List<Pair<RecentFileEntity, FileEntity?>>> = projectRepo.getRecentFiles()
-    .map { list ->
-      list.map { recent ->
-        Pair(recent, projectRepo.getFile(recent.fileId))
-      }
-    }
+    .map { list -> list.map { recent -> Pair(recent, projectRepo.getFile(recent.fileId)) } }
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-  init {
-    refreshStorageStats()
-  }
+  init { refreshStorageStats() }
 
   fun refreshStorageStats() {
-    viewModelScope.launch(Dispatchers.IO) {
-      _storageStats.value = projectRepo.getStorageStats()
+    viewModelScope.launch {
+      _storageStats.value = withContext(Dispatchers.IO) { projectRepo.getStorageStats() }
     }
   }
 
-  // Projects
+  // ============ Projects ============
   fun createProject(name: String, description: String, template: String, onCreated: (ProjectEntity) -> Unit) {
     viewModelScope.launch {
       val project = withContext(Dispatchers.IO) {
@@ -119,150 +108,141 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   fun toggleStarProject(projectId: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.toggleStarProject(projectId)
-    }
+    viewModelScope.launch { withContext(Dispatchers.IO) { projectRepo.toggleStarProject(projectId) } }
   }
 
   fun deleteProject(projectId: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.deleteProject(projectId)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.deleteProject(projectId) }
       refreshStorageStats()
     }
   }
 
   fun observeProject(id: String) = projectRepo.observeProject(id)
 
-  // Folders & Files in Explorer
   fun getFoldersInParent(projectId: String, parentId: String?) = projectRepo.getFoldersInParent(projectId, parentId)
   fun getFilesInFolder(projectId: String, folderId: String?) = projectRepo.getFilesInFolder(projectId, folderId)
 
   fun createFolder(projectId: String, parentFolderId: String?, name: String, onComplete: () -> Unit) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.createFolder(projectId, parentFolderId, name)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.createFolder(projectId, parentFolderId, name) }
       refreshStorageStats()
       onComplete()
     }
   }
 
   fun deleteFolder(folderId: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.deleteFolder(folderId)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.deleteFolder(folderId) }
       refreshStorageStats()
     }
   }
 
   fun renameFolder(folderId: String, newName: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.renameFolder(folderId, newName)
-    }
+    viewModelScope.launch { withContext(Dispatchers.IO) { projectRepo.renameFolder(folderId, newName) } }
   }
 
   fun createFile(projectId: String, folderId: String?, name: String, initialContent: String, onCreated: (FileEntity) -> Unit) {
-    viewModelScope.launch(Dispatchers.IO) {
-      val file = projectRepo.createFile(projectId, folderId, name, initialContent)
+    viewModelScope.launch {
+      val file = withContext(Dispatchers.IO) {
+        projectRepo.createFile(projectId, folderId, name, initialContent)
+      }
       refreshStorageStats()
       onCreated(file)
     }
   }
 
   fun deleteFile(fileId: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.deleteFile(fileId)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.deleteFile(fileId) }
       refreshStorageStats()
     }
   }
 
   fun renameFile(fileId: String, newName: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.renameFile(fileId, newName)
-    }
+    viewModelScope.launch { withContext(Dispatchers.IO) { projectRepo.renameFile(fileId, newName) } }
   }
 
   fun duplicateFile(fileId: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.duplicateFile(fileId)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.duplicateFile(fileId) }
       refreshStorageStats()
     }
   }
 
   fun toggleStarFile(fileId: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.toggleStarFile(fileId)
-    }
+    viewModelScope.launch { withContext(Dispatchers.IO) { projectRepo.toggleStarFile(fileId) } }
   }
 
   fun observeFile(fileId: String) = projectRepo.observeFile(fileId)
 
-  suspend fun readFileContent(fileId: String): String = projectRepo.readFileContent(fileId)
+  suspend fun readFileContent(fileId: String): String = withContext(Dispatchers.IO) {
+    projectRepo.readFileContent(fileId)
+  }
 
   fun saveFileContent(fileId: String, content: String, createSnapshot: Boolean) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.saveFileContent(fileId, content, createSnapshot)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.saveFileContent(fileId, content, createSnapshot) }
       refreshStorageStats()
     }
   }
 
   fun recordRecentAccess(fileId: String, projectId: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.recordRecentFileAccess(fileId, projectId)
-    }
+    viewModelScope.launch { withContext(Dispatchers.IO) { projectRepo.recordRecentFileAccess(fileId, projectId) } }
   }
 
-  // Version History
   fun getVersionHistory(fileId: String) = projectRepo.getVersionHistory(fileId)
 
   fun restoreVersion(versionId: String, onComplete: () -> Unit) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.restoreVersion(versionId)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.restoreVersion(versionId) }
       refreshStorageStats()
       onComplete()
     }
   }
 
-  // Trash
   fun restoreTrashItem(trashId: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.restoreTrashItem(trashId)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.restoreTrashItem(trashId) }
       refreshStorageStats()
     }
   }
 
   fun deleteTrashPermanently(trashId: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.deleteTrashItemPermanently(trashId)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.deleteTrashItemPermanently(trashId) }
       refreshStorageStats()
     }
   }
 
   fun emptyTrash() {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.emptyTrash()
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.emptyTrash() }
       refreshStorageStats()
     }
   }
 
-  // Backup & Restore
   fun createBackup(projectId: String?, onComplete: () -> Unit) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.createBackup(projectId)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.createBackup(projectId) }
       refreshStorageStats()
       onComplete()
     }
   }
 
   fun restoreBackup(backupId: String, onComplete: () -> Unit) {
-    viewModelScope.launch(Dispatchers.IO) {
-      projectRepo.restoreBackupRecord(backupId)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { projectRepo.restoreBackupRecord(backupId) }
       refreshStorageStats()
       onComplete()
     }
   }
 
-  // Import / Export
   fun importProjectFromZip(stream: InputStream, name: String, onComplete: (ProjectEntity) -> Unit) {
-    viewModelScope.launch(Dispatchers.IO) {
-      val project = projectRepo.importProjectFromZip(stream, name)
+    viewModelScope.launch {
+      val project = withContext(Dispatchers.IO) {
+        projectRepo.importProjectFromZip(stream, name)
+      }
       refreshStorageStats()
       onComplete(project)
     }
@@ -277,61 +257,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
-  // Search
   fun performSearch(query: String, scope: String, projectId: String?) {
-    viewModelScope.launch(Dispatchers.IO) {
+    viewModelScope.launch {
       _isSearching.value = true
-      _searchResults.value = projectRepo.search(query, scope, projectId)
+      val results = withContext(Dispatchers.IO) { projectRepo.search(query, scope, projectId) }
+      _searchResults.value = results
       _isSearching.value = false
     }
   }
 
-  // Storage
   fun clearCache(): Long {
     val cleared = projectRepo.clearAppCache()
     refreshStorageStats()
     return cleared
   }
 
-  // Settings
-  fun setTheme(mode: AppThemeMode) {
-    viewModelScope.launch { settingsRepo.setThemeMode(mode) }
+  fun setTheme(mode: AppThemeMode) { viewModelScope.launch { settingsRepo.setThemeMode(mode) } }
+  fun setLanguage(lang: AppLanguage) { viewModelScope.launch { settingsRepo.setLanguage(lang) } }
+  fun setEditorFontSize(size: Int) { viewModelScope.launch { settingsRepo.setEditorFontSize(size) } }
+  fun setLineNumbers(enabled: Boolean) { viewModelScope.launch { settingsRepo.setLineNumbersEnabled(enabled) } }
+  fun setWordWrap(enabled: Boolean) { viewModelScope.launch { settingsRepo.setWordWrapEnabled(enabled) } }
+  fun setTabSize(size: Int) { viewModelScope.launch { settingsRepo.setTabSize(size) } }
+  fun setSyntaxHighlighting(enabled: Boolean) { viewModelScope.launch { settingsRepo.setSyntaxHighlightingEnabled(enabled) } }
+  fun setAutoSave(enabled: Boolean) { viewModelScope.launch { settingsRepo.setAutoSaveEnabled(enabled) } }
+
+  // ============ Billing — با Activity ============
+  fun connectBilling(activity: Activity) {
+    billingManager.connect(activity)
   }
 
-  fun setLanguage(lang: AppLanguage) {
-    viewModelScope.launch { settingsRepo.setLanguage(lang) }
+  fun purchaseVipPlan(activity: Activity, planId: String) {
+    billingManager.purchasePlan(activity, planId, language.value == AppLanguage.FA)
   }
 
-  fun setEditorFontSize(size: Int) {
-    viewModelScope.launch { settingsRepo.setEditorFontSize(size) }
-  }
-
-  fun setLineNumbers(enabled: Boolean) {
-    viewModelScope.launch { settingsRepo.setLineNumbersEnabled(enabled) }
-  }
-
-  fun setWordWrap(enabled: Boolean) {
-    viewModelScope.launch { settingsRepo.setWordWrapEnabled(enabled) }
-  }
-
-  fun setTabSize(size: Int) {
-    viewModelScope.launch { settingsRepo.setTabSize(size) }
-  }
-
-  fun setSyntaxHighlighting(enabled: Boolean) {
-    viewModelScope.launch { settingsRepo.setSyntaxHighlightingEnabled(enabled) }
-  }
-
-  fun setAutoSave(enabled: Boolean) {
-    viewModelScope.launch { settingsRepo.setAutoSaveEnabled(enabled) }
-  }
-
-  // Billing
-  fun purchaseVipPlan(planId: String) {
-    billingManager.purchasePlan(planId, language.value == AppLanguage.FA)
-  }
-
-  fun restoreVipPurchases() {
-    billingManager.restorePurchases(language.value == AppLanguage.FA)
+  fun restoreVipPurchases(activity: Activity) {
+    billingManager.restorePurchases(activity, language.value == AppLanguage.FA)
   }
 }

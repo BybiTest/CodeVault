@@ -1,4 +1,3 @@
-cat > app/src/main/java/com/example/data/billing/BillingManager.kt << 'ENDOFFILE'
 package com.example.data.billing
 
 import android.app.Activity
@@ -44,16 +43,45 @@ class BillingManager(
 
   companion object {
     private const val TAG = "BillingManager"
+
+    // ⚠️ کلید RSA واقعی خودت رو اینجا بذار
     private const val RSA_PUBLIC_KEY = "MIHNMA0GCSqGSIb3DQEBAQUAA4G7ADCBtwKBrwDpr/BV/39/MeA7yljz8WILCmJzPxyDmf3e/J+7yaPKhbRbqZ6aerg0Dl46fwpl1vu6JmKrdN51uDm6oAcq1ZBK4HPlVeIdNpfgJEyTcv6B0fetx9qEpQkFNW60txzgfVDTQEO1PQs1+OcTn7MXPn9qd7WcyiTMlGezZ2+aWd5T4MkJxMq8sh6UIoZKqP+a7TCVi1PLRxHwWMIG0PxUwigyoZWJTliXIEDsRuLVY9UCAwEAAQ=="
+
+    // ⚠️ شناسه محصولات واقعی خودت رو اینجا بذار
     const val SKU_VIP_MONTHLY = "challengearena_vip_monthly"
     const val SKU_VIP_YEARLY = "challengearena_vip_yearly"
     const val SKU_VIP_LIFETIME = "challengearena_vip_lifetime"
   }
 
   val availablePlans = listOf(
-    VipPlan(id = SKU_VIP_MONTHLY, titleFa = "اشتراک ماهانه", titleEn = "Monthly Pass", priceFa = "۱۹۹,۰۰۰ ریال", priceEn = "199,000 IRR", periodFa = "هر ماه تمدید خودکار", periodEn = "Billed monthly"),
-    VipPlan(id = SKU_VIP_YEARLY, titleFa = "اشتراک سالانه", titleEn = "Annual VIP", priceFa = "۱,۹۹۰,۰۰۰ ریال", priceEn = "1,990,000 IRR", periodFa = "۳۵٪ تخفیف ویژه", periodEn = "Save 35%", isPopular = true),
-    VipPlan(id = SKU_VIP_LIFETIME, titleFa = "اشتراک مادام‌العمر", titleEn = "Lifetime Access", priceFa = "۲,۹۹۰,۰۰۰ ریال", priceEn = "2,990,000 IRR", periodFa = "یک‌بار پرداخت برای همیشه", periodEn = "Pay once, yours forever")
+    VipPlan(
+      id = SKU_VIP_MONTHLY,
+      titleFa = "اشتراک ماهانه",
+      titleEn = "Monthly Pass",
+      priceFa = "۱۹۹,۰۰۰ ریال",
+      priceEn = "199,000 IRR",
+      periodFa = "هر ماه تمدید خودکار",
+      periodEn = "Billed monthly"
+    ),
+    VipPlan(
+      id = SKU_VIP_YEARLY,
+      titleFa = "اشتراک سالانه",
+      titleEn = "Annual VIP",
+      priceFa = "۱,۹۹۰,۰۰۰ ریال",
+      priceEn = "1,990,000 IRR",
+      periodFa = "۳۵٪ تخفیف ویژه",
+      periodEn = "Save 35%",
+      isPopular = true
+    ),
+    VipPlan(
+      id = SKU_VIP_LIFETIME,
+      titleFa = "اشتراک مادام‌العمر",
+      titleEn = "Lifetime Access",
+      priceFa = "۲,۹۹۰,۰۰۰ ریال",
+      priceEn = "2,990,000 IRR",
+      periodFa = "یک‌بار پرداخت برای همیشه",
+      periodEn = "Pay once, yours forever"
+    )
   )
 
   private val _billingResult = MutableStateFlow<BillingResult>(BillingResult.Idle)
@@ -67,7 +95,10 @@ class BillingManager(
   fun connect(activity: Activity, onReady: () -> Unit = {}) {
     if (isConnected) { onReady(); return }
     try {
-      val config = PaymentConfiguration(localSecurityCheck = SecurityCheck.Disable, remoteSecurityCheck = SecurityCheck.Enable(RSA_PUBLIC_KEY))
+      val config = PaymentConfiguration(
+        localSecurityCheck = SecurityCheck.Disable,
+        remoteSecurityCheck = SecurityCheck.Enable(RSA_PUBLIC_KEY)
+      )
       payment = Payment(context, config)
       connection = payment!!.connect { state ->
         when (state) {
@@ -152,4 +183,3 @@ class BillingManager(
 
   fun resetResult() { _billingResult.value = BillingResult.Idle }
 }
-ENDOFFILE
