@@ -186,4 +186,10 @@ class TapsellAdManager(private val context: Context) {
             onError("خطا در نمایش تبلیغ: ${e.message}")
         }
     }
+
+    fun destroyInstantBanner(adId: String) {
+        try {
+            ir.tapsell.mediation.Tapsell.destroyBannerAd(adId)
+        } catch (_: Exception) {}
+    }
 }
