@@ -19,10 +19,10 @@ class TapsellAdManager(private val context: Context) {
         private const val TAG = "TapsellAdManager"
     }
 
-    private var lastRewardedResponseId: String? = null
-
     private val _isAdReady = MutableStateFlow(false)
     val isAdReady: StateFlow<Boolean> = _isAdReady.asStateFlow()
+
+    private var lastRewardedAdId: String? = null
 
     fun initialize() {
         Log.i(TAG, "Tapsell Mediation SDK initialized")
@@ -30,7 +30,9 @@ class TapsellAdManager(private val context: Context) {
     }
 
     // ============ بنر استاندارد ============
-    fun createStandardBannerContainer(): BannerContainer = BannerContainer(context)
+    fun createStandardBannerContainer(): BannerContainer {
+        return BannerContainer(context)
+    }
 
     fun loadStandardBanner(
         container: BannerContainer,
@@ -43,10 +45,12 @@ class TapsellAdManager(private val context: Context) {
                 BannerSize.BANNER_320_50,
                 object : RequestResultListener {
                     override fun onSuccess(adId: String) {
-                        container.loadAd(adId)
+                        // ✅ متد درست: showBannerAd
+                        Tapsell.showBannerAd(adId, container)
                         onSuccess(adId)
                     }
                     override fun onFailure(message: String) {
+                        Log.e(TAG, "Banner error: $message")
                         onFailure(message)
                     }
                 }
@@ -56,8 +60,18 @@ class TapsellAdManager(private val context: Context) {
         }
     }
 
+    fun destroyStandardBanner(adId: String, container: BannerContainer) {
+        try {
+            Tapsell.destroyBannerAd(adId, container)
+        } catch (e: Exception) {
+            Log.e(TAG, "destroy error: ${e.message}")
+        }
+    }
+
     // ============ بنر آنی ============
-    fun createInstantBannerContainer(): BannerContainer = BannerContainer(context)
+    fun createInstantBannerContainer(): BannerContainer {
+        return BannerContainer(context)
+    }
 
     fun loadInstantBanner(
         container: BannerContainer,
@@ -70,7 +84,7 @@ class TapsellAdManager(private val context: Context) {
                 BannerSize.BANNER_320_50,
                 object : RequestResultListener {
                     override fun onSuccess(adId: String) {
-                        container.loadAd(adId)
+                        Tapsell.showBannerAd(adId, container)
                         onSuccess(adId)
                     }
                     override fun onFailure(message: String) {
@@ -90,7 +104,7 @@ class TapsellAdManager(private val context: Context) {
                 TapsellConfig.ZONE_REWARDED_VIDEO,
                 object : RequestResultListener {
                     override fun onSuccess(adId: String) {
-                        lastRewardedResponseId = adId
+                        lastRewardedAdId = adId
                         _isAdReady.value = true
                         Log.d(TAG, "Rewarded ad ready. adId=$adId")
                     }
@@ -105,37 +119,6 @@ class TapsellAdManager(private val context: Context) {
         }
     }
 
-    fun requestRewardedAd(
-        isVip: Boolean,
-        onAdAvailable: () -> Unit,
-        onAdNotAvailable: (reason: String) -> Unit
-    ) {
-        if (isVip) { onAdNotAvailable("VIP users do not receive ads."); return }
-
-        if (lastRewardedResponseId != null && _isAdReady.value) {
-            onAdAvailable(); return
-        }
-
-        try {
-            Tapsell.requestRewardedAd(
-                TapsellConfig.ZONE_REWARDED_VIDEO,
-                object : RequestResultListener {
-                    override fun onSuccess(adId: String) {
-                        lastRewardedResponseId = adId
-                        _isAdReady.value = true
-                        onAdAvailable()
-                    }
-                    override fun onFailure(message: String) {
-                        _isAdReady.value = false
-                        onAdNotAvailable(message)
-                    }
-                }
-            )
-        } catch (e: Exception) {
-            onAdNotAvailable("خطا: ${e.message}")
-        }
-    }
-
     fun showRewardedAd(
         activity: Activity,
         isVip: Boolean,
@@ -144,7 +127,7 @@ class TapsellAdManager(private val context: Context) {
     ) {
         if (isVip) { onError("کاربران VIP نیازی به مشاهده تبلیغ ندارند"); return }
 
-        val adId = lastRewardedResponseId
+        val adId = lastRewardedAdId
         if (adId.isNullOrBlank()) {
             onError("تبلیغ هنوز آماده نیست. لطفاً دوباره تلاش کن."); return
         }
@@ -159,7 +142,7 @@ class TapsellAdManager(private val context: Context) {
                         onRewardEarned()
                     }
                     override fun onAdClosed(completionState: AdShowCompletionState) {
-                        lastRewardedResponseId = null
+                        lastRewardedAdId = null
                         _isAdReady.value = false
                         preloadRewardedVideo()
                     }
