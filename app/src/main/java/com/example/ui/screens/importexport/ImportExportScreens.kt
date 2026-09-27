@@ -23,9 +23,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
+import com.example.CodeVaultApplication
 import com.example.data.model.ProjectEntity
 import com.example.ui.components.CodeVaultTopBar
+import com.example.ui.components.RewardedAdDialog
 import com.example.ui.localization.LocalAppStrings
 import com.example.ui.screens.dashboard.formatBytes
 import java.io.ByteArrayInputStream
@@ -139,7 +140,6 @@ fun ImportProjectScreen(
         }
       }
 
-      // Quick Import Sample Projects
       Text(
         text = "یا وارد کردن پروژه‌های نمونه آماده:",
         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -246,9 +246,30 @@ fun ExportProjectScreen(
   onExportZip: (destinationFile: File, onComplete: (File?) -> Unit) -> Unit
 ) {
   val context = LocalContext.current
+  val app = context.applicationContext as CodeVaultApplication
   val strings = LocalAppStrings.current
   var isExporting by remember { mutableStateOf(false) }
   var exportedFile by remember { mutableStateOf<File?>(null) }
+  var showRewardedDialog by remember { mutableStateOf(false) }
+  var isVip by remember { mutableStateOf(false) }
+
+  LaunchedEffect(Unit) {
+    isVip = app.settingsRepository.isVipActive.first()
+  }
+
+  // تابع شروع Export
+  fun startExport() {
+    if (project == null) return
+    isExporting = true
+    val exportFile = File(context.cacheDir, "${project.name.replace(" ", "_")}.zip")
+    onExportZip(exportFile) { result ->
+      isExporting = false
+      exportedFile = result
+      if (result != null) {
+        Toast.makeText(context, "فایل ZIP در ${result.name} آماده شد", Toast.LENGTH_SHORT).show()
+      }
+    }
+  }
 
   Scaffold(
     topBar = {
@@ -299,14 +320,12 @@ fun ExportProjectScreen(
 
       Button(
         onClick = {
-          isExporting = true
-          val exportFile = File(context.cacheDir, "${project.name.replace(" ", "_")}.zip")
-          onExportZip(exportFile) { result ->
-            isExporting = false
-            exportedFile = result
-            if (result != null) {
-              Toast.makeText(context, "فایل ZIP در ${result.name} آماده شد", Toast.LENGTH_SHORT).show()
-            }
+          if (isVip) {
+            // کاربر VIP، بدون تبلیغ
+            startExport()
+          } else {
+            // کاربر عادی، اول تبلیغ
+            showRewardedDialog = true
           }
         },
         enabled = !isExporting,
@@ -323,6 +342,14 @@ fun ExportProjectScreen(
           Spacer(modifier = Modifier.width(8.dp))
           Text(strings.exportAsZip, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
         }
+      }
+
+      if (!isVip) {
+        Text(
+          text = "💡 برای کاربران عادی، قبل از خروجی یک ویدیو کوتاه نمایش داده می‌شود. با خرید VIP این محدودیت حذف می‌شود.",
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
       }
 
       if (exportedFile != null) {
@@ -369,5 +396,19 @@ fun ExportProjectScreen(
         }
       }
     }
+  }
+
+  // دیالوگ ویدیوی جایزه‌ای
+  if (showRewardedDialog) {
+    RewardedAdDialog(
+      isVip = false,
+      title = "تماشای ویدیو برای گرفتن خروجی ZIP",
+      message = "برای گرفتن خروجی ZIP از پروژه، لطفاً یک ویدیو کوتاه تماشا کنید.",
+      onRewardEarned = {
+        showRewardedDialog = false
+        startExport()
+      },
+      onDismiss = { showRewardedDialog = false }
+    )
   }
 }
