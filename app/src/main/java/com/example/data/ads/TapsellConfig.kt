@@ -8,9 +8,9 @@ object TapsellConfig {
 
   const val APP_KEY = "papdggdngktkkhloocmbmngenrjirdgrfhcrfjksqcgfatmrfrmfgmtngfqgcepmqirmhb"
 
-  const val ZONE_REWARDED_VIDEO = "1d710cc7-5e96-46ac-a3e9-8463300333e6"
-  const val ZONE_STANDARD_BANNER = "e3d5999c-5990-4e31-8ce9-642ce040a7f4"
-  const val ZONE_INSTANT_BANNER = "e3d5999c-5990-4e31-8ce9-642ce040a7f4"
+  const val ZONE_REWARDED_VIDEO = "6ab553dae237e15c69fbac2d"
+  const val ZONE_STANDARD_BANNER = "6ab553eff9c3d5797ba49cda"
+  const val ZONE_INSTANT_BANNER = "6ab55455f9c3d5797ba49cdb"
 
   val isConfigured: Boolean
     get() = APP_KEY.isNotBlank() && !APP_KEY.contains("YOUR_") &&

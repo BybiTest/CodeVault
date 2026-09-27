@@ -24,8 +24,8 @@ class TapsellAdManager(private val context: Context) {
     }
 
     // ============ بنر استاندارد ============
-    fun createStandardBannerContainer(): BannerContainer {
-        return BannerContainer(context)
+    fun createStandardBannerContainer(activity: Activity): BannerContainer {
+        return BannerContainer(activity)
     }
 
     fun loadStandardBanner(
@@ -64,8 +64,8 @@ class TapsellAdManager(private val context: Context) {
     }
 
     // ============ بنر آنی ============
-    fun createInstantBannerContainer(): BannerContainer {
-        return BannerContainer(context)
+    fun createInstantBannerContainer(activity: Activity): BannerContainer {
+        return BannerContainer(activity)
     }
 
     fun loadInstantBanner(
