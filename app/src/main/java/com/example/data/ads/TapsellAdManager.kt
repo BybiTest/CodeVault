@@ -19,7 +19,29 @@ class TapsellAdManager(private val context: Context) {
     private var lastRewardedAdId: String? = null
 
     fun initialize() {
-        Log.i(TAG, "Tapsell Mediation SDK initialized")
+        android.util.Log.e("TAPSELL_DEBUG", "=== Tapsell init called ===")
+        try {
+            android.widget.Toast.makeText(
+                context,
+                "Tapsell: Initializing...",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            ir.tapsell.mediation.Tapsell.setInitializationListener {
+                android.util.Log.e("TAPSELL_DEBUG", "=== Tapsell initialized OK ===")
+                android.widget.Toast.makeText(
+                    context,
+                    "Tapsell Initialized OK",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("TAPSELL_DEBUG", "=== Tapsell init error: ${e.message} ===")
+            android.widget.Toast.makeText(
+                context,
+                "Tapsell Error: ${e.message}",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
         preloadRewardedVideo()
     }
 
