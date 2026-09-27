@@ -281,16 +281,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
   fun setSyntaxHighlighting(enabled: Boolean) { viewModelScope.launch { settingsRepo.setSyntaxHighlightingEnabled(enabled) } }
   fun setAutoSave(enabled: Boolean) { viewModelScope.launch { settingsRepo.setAutoSaveEnabled(enabled) } }
 
-  // ============ Billing — با Activity ============
-  fun connectBilling(activity: Activity) {
-    billingManager.connect(activity)
-  }
+// ============ Billing — Poolakey ============
+fun connectBilling() {
+  billingManager.connect()
+}
 
-  fun purchaseVipPlan(activity: Activity, planId: String) {
-    billingManager.purchasePlan(activity, planId, language.value == AppLanguage.FA)
-  }
+fun purchaseVipPlan(registry: androidx.activity.result.ActivityResultRegistry, planId: String) {
+  billingManager.purchasePlan(registry, planId, language.value == AppLanguage.FA)
+}
 
-  fun restoreVipPurchases(activity: Activity) {
-    billingManager.restorePurchases(activity, language.value == AppLanguage.FA)
-  }
+fun restoreVipPurchases() {
+  billingManager.restorePurchases(language.value == AppLanguage.FA)
 }
