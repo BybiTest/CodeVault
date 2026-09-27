@@ -9,18 +9,12 @@ import ir.tapsell.mediation.ad.request.RequestResultListener
 import ir.tapsell.mediation.ad.show.AdShowCompletionState
 import ir.tapsell.mediation.ad.show.AdStateListener
 import ir.tapsell.mediation.ad.views.banner.BannerContainer
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 class TapsellAdManager(private val context: Context) {
 
     companion object {
         private const val TAG = "TapsellAdManager"
     }
-
-    private val _isAdReady = MutableStateFlow(false)
-    val isAdReady: StateFlow<Boolean> = _isAdReady.asStateFlow()
 
     private var lastRewardedAdId: String? = null
 
@@ -36,6 +30,7 @@ class TapsellAdManager(private val context: Context) {
 
     fun loadStandardBanner(
         container: BannerContainer,
+        activity: Activity,
         onSuccess: (String) -> Unit = {},
         onFailure: (String) -> Unit = {}
     ) {
@@ -43,10 +38,10 @@ class TapsellAdManager(private val context: Context) {
             Tapsell.requestBannerAd(
                 TapsellConfig.ZONE_STANDARD_BANNER,
                 BannerSize.BANNER_320_50,
+                activity,
                 object : RequestResultListener {
                     override fun onSuccess(adId: String) {
-                        // ✅ متد درست: showBannerAd
-                        Tapsell.showBannerAd(adId, container)
+                        Tapsell.showBannerAd(adId, container, activity)
                         onSuccess(adId)
                     }
                     override fun onFailure(message: String) {
@@ -60,9 +55,9 @@ class TapsellAdManager(private val context: Context) {
         }
     }
 
-    fun destroyStandardBanner(adId: String, container: BannerContainer) {
+    fun destroyStandardBanner(adId: String) {
         try {
-            Tapsell.destroyBannerAd(adId, container)
+            Tapsell.destroyBannerAd(adId)
         } catch (e: Exception) {
             Log.e(TAG, "destroy error: ${e.message}")
         }
@@ -75,6 +70,7 @@ class TapsellAdManager(private val context: Context) {
 
     fun loadInstantBanner(
         container: BannerContainer,
+        activity: Activity,
         onSuccess: (String) -> Unit = {},
         onFailure: (String) -> Unit = {}
     ) {
@@ -82,9 +78,10 @@ class TapsellAdManager(private val context: Context) {
             Tapsell.requestBannerAd(
                 TapsellConfig.ZONE_INSTANT_BANNER,
                 BannerSize.BANNER_320_50,
+                activity,
                 object : RequestResultListener {
                     override fun onSuccess(adId: String) {
-                        Tapsell.showBannerAd(adId, container)
+                        Tapsell.showBannerAd(adId, container, activity)
                         onSuccess(adId)
                     }
                     override fun onFailure(message: String) {
@@ -105,17 +102,45 @@ class TapsellAdManager(private val context: Context) {
                 object : RequestResultListener {
                     override fun onSuccess(adId: String) {
                         lastRewardedAdId = adId
-                        _isAdReady.value = true
                         Log.d(TAG, "Rewarded ad ready. adId=$adId")
                     }
                     override fun onFailure(message: String) {
-                        _isAdReady.value = false
                         Log.e(TAG, "Rewarded video error: $message")
                     }
                 }
             )
         } catch (e: Exception) {
             Log.e(TAG, "preloadRewardedVideo exception: ${e.message}", e)
+        }
+    }
+
+    fun requestRewardedAd(
+        isVip: Boolean,
+        onAdAvailable: () -> Unit,
+        onAdNotAvailable: (reason: String) -> Unit
+    ) {
+        if (isVip) { onAdNotAvailable("VIP users do not receive ads."); return }
+
+        if (lastRewardedAdId != null) {
+            onAdAvailable()
+            return
+        }
+
+        try {
+            Tapsell.requestRewardedAd(
+                TapsellConfig.ZONE_REWARDED_VIDEO,
+                object : RequestResultListener {
+                    override fun onSuccess(adId: String) {
+                        lastRewardedAdId = adId
+                        onAdAvailable()
+                    }
+                    override fun onFailure(message: String) {
+                        onAdNotAvailable(message)
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            onAdNotAvailable("خطا: ${e.message}")
         }
     }
 
@@ -143,7 +168,6 @@ class TapsellAdManager(private val context: Context) {
                     }
                     override fun onAdClosed(completionState: AdShowCompletionState) {
                         lastRewardedAdId = null
-                        _isAdReady.value = false
                         preloadRewardedVideo()
                     }
                     override fun onAdFailed(message: String) {
