@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.app.Activity
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,6 +30,7 @@ fun AdBannerView(
     if (isVip) return
 
     val context = LocalContext.current
+    val activity = context as? Activity ?: return
     val app = context.applicationContext as CodeVaultApplication
     val container = remember { app.tapsellAdManager.createStandardBannerContainer() }
     var adId by remember { mutableStateOf<String?>(null) }
@@ -36,6 +38,7 @@ fun AdBannerView(
     LaunchedEffect(Unit) {
         app.tapsellAdManager.loadStandardBanner(
             container = container,
+            activity = activity,
             onSuccess = { adId = it },
             onFailure = { /* Ad failed to load */ }
         )
@@ -43,7 +46,7 @@ fun AdBannerView(
 
     DisposableEffect(Unit) {
         onDispose {
-            adId?.let { app.tapsellAdManager.destroyStandardBanner(it, container) }
+            adId?.let { app.tapsellAdManager.destroyStandardBanner(it) }
         }
     }
 
