@@ -4,41 +4,53 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.CodeVaultApplication
 import com.example.R
+import com.example.ui.components.AdInstantBanner
 import com.example.ui.localization.LocalAppStrings
 import com.example.ui.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun SplashScreen(
   onSplashFinished: () -> Unit
 ) {
   val strings = LocalAppStrings.current
+  val context = LocalContext.current
+  val app = context.applicationContext as CodeVaultApplication
 
-  // Animation states
+  var isVip by remember { mutableStateOf(false) }
+
+  LaunchedEffect(Unit) {
+    isVip = app.settingsRepository.isVipActive.first()
+    delay(3000)
+    onSplashFinished()
+  }
+
   val infiniteTransition = rememberInfiniteTransition(label = "pulse")
   val pulseScale by infiniteTransition.animateFloat(
     initialValue = 0.95f,
@@ -49,12 +61,6 @@ fun SplashScreen(
     ),
     label = "scale"
   )
-
-  LaunchedEffect(Unit) {
-    // 3 seconds splash as requested
-    delay(3000)
-    onSplashFinished()
-  }
 
   Box(
     modifier = Modifier
@@ -76,7 +82,6 @@ fun SplashScreen(
       verticalArrangement = Arrangement.Center,
       modifier = Modifier.padding(24.dp)
     ) {
-      // App Icon with metallic glow
       Box(
         modifier = Modifier
           .size(128.dp)
@@ -104,7 +109,6 @@ fun SplashScreen(
 
       Spacer(modifier = Modifier.height(28.dp))
 
-      // App Title
       Text(
         text = strings.appName,
         style = MaterialTheme.typography.headlineLarge.copy(
@@ -116,7 +120,6 @@ fun SplashScreen(
 
       Spacer(modifier = Modifier.height(8.dp))
 
-      // Subtitle
       Text(
         text = strings.appSubtitle,
         style = MaterialTheme.typography.titleMedium,
@@ -126,7 +129,6 @@ fun SplashScreen(
 
       Spacer(modifier = Modifier.height(36.dp))
 
-      // Circular loading progress
       CircularProgressIndicator(
         modifier = Modifier.size(32.dp),
         color = MetallicCyanPrimary,
@@ -140,9 +142,12 @@ fun SplashScreen(
         style = MaterialTheme.typography.bodySmall,
         color = MetallicTextSecondary
       )
+
+      Spacer(modifier = Modifier.height(24.dp))
+
+      AdInstantBanner(isVip = isVip)
     }
 
-    // Bottom info: Version & Developer name
     Column(
       modifier = Modifier
         .align(Alignment.BottomCenter)
