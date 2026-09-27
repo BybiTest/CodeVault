@@ -33,6 +33,7 @@ import com.example.ui.components.AdInstantBanner
 import com.example.ui.localization.LocalAppStrings
 import com.example.ui.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun SplashScreen(
@@ -45,7 +46,6 @@ fun SplashScreen(
   var isVip by remember { mutableStateOf(false) }
 
   LaunchedEffect(Unit) {
-    // چک کردن وضعیت VIP
     isVip = app.settingsRepository.isVipActive.first()
     delay(3000)
     onSplashFinished()
@@ -145,7 +145,6 @@ fun SplashScreen(
 
       Spacer(modifier = Modifier.height(24.dp))
 
-      // بنر آنی تپسل
       AdInstantBanner(isVip = isVip)
     }
 
