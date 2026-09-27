@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.CodeVaultApplication
 import com.example.ui.theme.VipGold
+import ir.tapsell.mediation.ad.views.banner.BannerContainer
 
 @Composable
 fun AdBannerView(
@@ -31,9 +32,20 @@ fun AdBannerView(
     val context = LocalContext.current
     val app = context.applicationContext as CodeVaultApplication
     val container = remember { app.tapsellAdManager.createStandardBannerContainer() }
+    var adId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        app.tapsellAdManager.loadStandardBanner(container)
+        app.tapsellAdManager.loadStandardBanner(
+            container = container,
+            onSuccess = { adId = it },
+            onFailure = { /* Ad failed to load */ }
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            adId?.let { app.tapsellAdManager.destroyStandardBanner(it, container) }
+        }
     }
 
     Surface(
