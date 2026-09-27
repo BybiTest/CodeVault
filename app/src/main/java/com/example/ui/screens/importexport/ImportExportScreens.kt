@@ -29,6 +29,7 @@ import com.example.ui.components.CodeVaultTopBar
 import com.example.ui.components.RewardedAdDialog
 import com.example.ui.localization.LocalAppStrings
 import com.example.ui.screens.dashboard.formatBytes
+import kotlinx.coroutines.flow.first
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
@@ -257,7 +258,6 @@ fun ExportProjectScreen(
     isVip = app.settingsRepository.isVipActive.first()
   }
 
-  // تابع شروع Export
   fun startExport() {
     if (project == null) return
     isExporting = true
@@ -321,10 +321,8 @@ fun ExportProjectScreen(
       Button(
         onClick = {
           if (isVip) {
-            // کاربر VIP، بدون تبلیغ
             startExport()
           } else {
-            // کاربر عادی، اول تبلیغ
             showRewardedDialog = true
           }
         },
@@ -398,7 +396,6 @@ fun ExportProjectScreen(
     }
   }
 
-  // دیالوگ ویدیوی جایزه‌ای
   if (showRewardedDialog) {
     RewardedAdDialog(
       isVip = false,
