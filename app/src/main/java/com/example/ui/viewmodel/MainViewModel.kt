@@ -1,6 +1,5 @@
 package com.example.ui.viewmodel
 
-import android.app.Activity
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -281,15 +280,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
   fun setSyntaxHighlighting(enabled: Boolean) { viewModelScope.launch { settingsRepo.setSyntaxHighlightingEnabled(enabled) } }
   fun setAutoSave(enabled: Boolean) { viewModelScope.launch { settingsRepo.setAutoSaveEnabled(enabled) } }
 
-// ============ Billing — Poolakey ============
-fun connectBilling() {
-  billingManager.connect()
-}
+  // ============ Billing — Poolakey ============
+  fun connectBilling() {
+    billingManager.connect()
+  }
 
-fun purchaseVipPlan(registry: androidx.activity.result.ActivityResultRegistry, planId: String) {
-  billingManager.purchasePlan(registry, planId, language.value == AppLanguage.FA)
-}
+  fun purchaseVipPlan(registry: androidx.activity.result.ActivityResultRegistry, planId: String) {
+    billingManager.purchasePlan(registry, planId, language.value == AppLanguage.FA)
+  }
 
-fun restoreVipPurchases() {
-  billingManager.restorePurchases(language.value == AppLanguage.FA)
+  fun restoreVipPurchases() {
+    billingManager.restorePurchases(language.value == AppLanguage.FA)
+  }
 }
