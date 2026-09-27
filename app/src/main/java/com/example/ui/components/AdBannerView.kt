@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.CodeVaultApplication
 import com.example.ui.theme.VipGold
-import ir.tapsell.mediation.ad.views.banner.BannerContainer
 
 @Composable
 fun AdBannerView(
