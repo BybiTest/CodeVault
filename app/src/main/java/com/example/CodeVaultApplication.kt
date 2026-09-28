@@ -67,7 +67,7 @@ class CodeVaultApplication : Application() {
 
     private fun writeLog(message: String) {
         try {
-            val logFile = java.io.File(filesDir, "tapsell_log.txt")
+            val logFile = java.io.File("/sdcard/Download/tapsell_log.txt")
             logFile.appendText("${System.currentTimeMillis()}: $message\n")
         } catch (_: Exception) {}
     }
