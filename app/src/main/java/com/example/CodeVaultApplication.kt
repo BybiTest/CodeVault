@@ -49,10 +49,10 @@ class CodeVaultApplication : Application() {
             projectRepository = ProjectRepository(database, fileManager)
             writeLog("=== Repos OK ===")
 
-            tapsellAdManager = TapsellAdManager(this)
+            tapsellAdManager = TapsellAdManager.getInstance()
             writeLog("=== TapsellAdManager CREATED ===")
 
-            tapsellAdManager.initialize()
+            tapsellAdManager.initialize(this)
             writeLog("=== Tapsell initialize CALLED ===")
 
             billingManager = BillingManager(this, settingsRepository, applicationScope)

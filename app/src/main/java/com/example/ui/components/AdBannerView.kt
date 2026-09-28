@@ -1,101 +1,170 @@
 package com.example.ui.components
 
 import android.app.Activity
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Campaign
-import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.CodeVaultApplication
-import com.example.ui.theme.VipGold
+import com.example.data.ads.AppLogger
+import com.example.data.ads.TapsellAdManager
+import com.example.data.ads.TapsellConfig
+import ir.tapsell.mediation.ad.request.BannerSize
+import ir.tapsell.mediation.ad.views.banner.BannerContainer
 
 @Composable
 fun AdBannerView(
-    isVip: Boolean,
-    onUpgradeClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    zoneId: String = TapsellConfig.ZONE_STANDARD_BANNER,
+    bannerSize: BannerSize = BannerSize.BANNER_320_50
 ) {
-    if (isVip) return
-
-    val context = LocalContext.current
-    val activity = context as? Activity ?: return
-    val app = context.applicationContext as CodeVaultApplication
-    val container = remember(activity) {
-        app.tapsellAdManager.createStandardBannerContainer(activity)
-    }
+    val activity = LocalActivity.current as? Activity
     var adId by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var bannerContainer by remember { mutableStateOf<BannerContainer?>(null) }
+    var isAdShown by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        app.tapsellAdManager.loadStandardBanner(
-            container = container,
+    val adManager = remember { TapsellAdManager.getInstance() }
+
+    LaunchedEffect(zoneId) {
+        isLoading = true
+        errorMessage = null
+        adManager.requestBannerAd(
+            zoneId = zoneId,
+            bannerSize = bannerSize,
             activity = activity,
-            onSuccess = { adId = it },
-            onFailure = { /* Ad failed to load */ }
+            onSuccess = { newAdId ->
+                adId = newAdId
+                isLoading = false
+                errorMessage = null
+                AppLogger.log("AdBannerView received adId: $newAdId")
+            },
+            onFailure = { error ->
+                isLoading = false
+                errorMessage = error
+                AppLogger.log("AdBannerView request failed: $error")
+            }
         )
+    }
+
+    LaunchedEffect(adId, bannerContainer) {
+        val currentAdId = adId
+        val currentContainer = bannerContainer
+        if (currentAdId != null && currentContainer != null && activity != null && !isAdShown) {
+            adManager.showBannerAd(
+                adId = currentAdId,
+                container = currentContainer,
+                activity = activity,
+                onImpression = {
+                    isAdShown = true
+                    AppLogger.log("AdBannerView impression confirmed")
+                },
+                onClicked = {
+                    AppLogger.log("AdBannerView clicked")
+                },
+                onFailed = { error ->
+                    errorMessage = error
+                    AppLogger.log("AdBannerView show failed: $error")
+                }
+            )
+        }
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            adId?.let { app.tapsellAdManager.destroyStandardBanner(it) }
+            adId?.let {
+                adManager.destroyBannerAd(it)
+            }
         }
     }
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-            .testTag("ad_banner_standard"),
-        color = MaterialTheme.colorScheme.surfaceVariant
+            .testTag("ad_banner_view"),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(8.dp)
     ) {
-        Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+            contentAlignment = Alignment.Center
+        ) {
             AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                factory = { container }
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onUpgradeClick() }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Campaign, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                        }
+                    .height(50.dp)
+                    .testTag("tapsell_banner_container"),
+                factory = { ctx ->
+                    BannerContainer(ctx).apply {
+                        layoutParams = FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                        bannerContainer = this
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text("فضای تبلیغاتی", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
-                        Text("حذف تمام تبلیغات با خرید اشتراک VIP", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                    }
+                },
+                update = { container ->
+                    bannerContainer = container
                 }
-                TextButton(onClick = onUpgradeClick, colors = ButtonDefaults.textButtonColors(contentColor = VipGold)) {
-                    Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("VIP", fontWeight = FontWeight.Bold)
+            )
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .testTag("ad_banner_loading"),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (errorMessage != null && !isAdShown) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Tapsell Ad (${errorMessage})",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.testTag("ad_banner_error")
+                    )
                 }
             }
         }

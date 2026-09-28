@@ -20,6 +20,7 @@ android {
     versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    manifestPlaceholders["TapsellMediationAppKey"] = "76798342-99a7-4a5f-bf5a-60a088d5dcfb"
 
     addManifestPlaceholders(
       mapOf(
@@ -105,8 +106,10 @@ dependencies {
   implementation(libs.okhttp)
   implementation(libs.retrofit)
 
-  implementation(libs.tapsell.mediation)
-  implementation(libs.tapsell.mediation.legacy)
+  implementation(libs.tapsell)
+  implementation(libs.tapsell.adapter.legacy)
+  implementation(libs.google.appset)
+  implementation(libs.google.ads.identifier)
 
   implementation(libs.poolakey)
 

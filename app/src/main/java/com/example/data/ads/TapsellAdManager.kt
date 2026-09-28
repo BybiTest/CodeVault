@@ -2,216 +2,207 @@ package com.example.data.ads
 
 import android.app.Activity
 import android.content.Context
-import android.util.Log
+import android.os.Handler
+import android.os.Looper
+import ir.tapsell.mediation.MediationInitializationListener
 import ir.tapsell.mediation.Tapsell
 import ir.tapsell.mediation.ad.AdStateListener
 import ir.tapsell.mediation.ad.request.BannerSize
 import ir.tapsell.mediation.ad.request.RequestResultListener
 import ir.tapsell.mediation.ad.show.AdShowCompletionState
 import ir.tapsell.mediation.ad.views.banner.BannerContainer
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
-class TapsellAdManager(private val context: Context) {
+class TapsellAdManager private constructor() {
+
+    private val _isInitialized = MutableStateFlow(false)
+    val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
+
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     companion object {
-        private const val TAG = "TapsellAdManager"
-    }
+        @Volatile
+        private var instance: TapsellAdManager? = null
 
-    private var lastRewardedAdId: String? = null
-
-    fun initialize() {
-        android.util.Log.e("TAPSELL_DEBUG", "=== Tapsell init called ===")
-        try {
-            android.widget.Toast.makeText(
-                context,
-                "Tapsell: Initializing...",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
-            ir.tapsell.mediation.Tapsell.setInitializationListener {
-                android.util.Log.e("TAPSELL_DEBUG", "=== Tapsell initialized OK ===")
-                android.widget.Toast.makeText(
-                    context,
-                    "Tapsell Initialized OK",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
+        fun getInstance(): TapsellAdManager {
+            return instance ?: synchronized(this) {
+                instance ?: TapsellAdManager().also { instance = it }
             }
-        } catch (e: Exception) {
-            android.util.Log.e("TAPSELL_DEBUG", "=== Tapsell init error: ${e.message} ===")
-            android.widget.Toast.makeText(
-                context,
-                "Tapsell Error: ${e.message}",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
         }
-        preloadRewardedVideo()
     }
 
-    // ============ بنر استاندارد ============
-    fun createStandardBannerContainer(activity: Activity): BannerContainer {
-        return BannerContainer(activity)
+    fun initialize(context: Context) {
+        AppLogger.log("=== Tapsell initialize CALLED ===")
+        try {
+            Tapsell.setInitializationListener(object : MediationInitializationListener {
+                override fun onInitializationComplete() {
+                    _isInitialized.value = true
+                    AppLogger.log("=== Tapsell initialized OK ===")
+                    try {
+                        Tapsell.setUserConsent(true)
+                    } catch (e: Throwable) {
+                        AppLogger.log("Tapsell setUserConsent note: ${e.message}")
+                    }
+                }
+            })
+        } catch (e: Throwable) {
+            AppLogger.log("Error calling setInitializationListener: ${e.message}")
+        }
     }
 
-    fun loadStandardBanner(
+    fun requestBannerAd(
+        zoneId: String = TapsellConfig.ZONE_STANDARD_BANNER,
+        bannerSize: BannerSize = BannerSize.BANNER_320_50,
+        activity: Activity? = null,
+        onSuccess: (String) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        AppLogger.log("requestBannerAd CALLED for zone: $zoneId, size: ${bannerSize.name}")
+        val listener = object : RequestResultListener {
+            override fun onSuccess(adId: String) {
+                AppLogger.log("requestBannerAd SUCCESS: adId=$adId")
+                mainHandler.post { onSuccess(adId) }
+            }
+
+            override fun onFailure(message: String) {
+                AppLogger.log("requestBannerAd FAILED: $message")
+                mainHandler.post { onFailure(message) }
+            }
+        }
+
+        try {
+            if (activity != null) {
+                Tapsell.requestBannerAd(zoneId, bannerSize, activity, listener)
+            } else {
+                Tapsell.requestBannerAd(zoneId, bannerSize, listener)
+            }
+        } catch (e: Throwable) {
+            AppLogger.log("Exception requesting banner ad: ${e.message}")
+            mainHandler.post { onFailure(e.message ?: "Unknown error") }
+        }
+    }
+
+    fun showBannerAd(
+        adId: String,
         container: BannerContainer,
         activity: Activity,
-        onSuccess: (String) -> Unit = {},
-        onFailure: (String) -> Unit = {}
+        onImpression: () -> Unit = {},
+        onClicked: () -> Unit = {},
+        onFailed: (String) -> Unit = {}
     ) {
+        AppLogger.log("showBannerAd CALLED: adId=$adId")
         try {
-            Tapsell.requestBannerAd(
-                TapsellConfig.ZONE_STANDARD_BANNER,
-                BannerSize.BANNER_320_50,
+            Tapsell.showBannerAd(
+                adId,
+                container,
                 activity,
-                object : RequestResultListener {
-                    override fun onSuccess(adId: String) {
-                        Tapsell.showBannerAd(adId, container, activity)
-                        onSuccess(adId)
+                object : AdStateListener.Banner {
+                    override fun onAdImpression() {
+                        AppLogger.log("showBannerAd IMPRESSION: adId=$adId")
+                        mainHandler.post { onImpression() }
                     }
-                    override fun onFailure(message: String) {
-                        Log.e(TAG, "Banner error: $message")
-                        onFailure(message)
+
+                    override fun onAdClicked() {
+                        AppLogger.log("showBannerAd CLICKED: adId=$adId")
+                        mainHandler.post { onClicked() }
+                    }
+
+                    override fun onAdFailed(message: String) {
+                        AppLogger.log("showBannerAd FAILED: $message")
+                        mainHandler.post { onFailed(message) }
                     }
                 }
             )
-        } catch (e: Exception) {
-            onFailure(e.message ?: "Unknown error")
+        } catch (e: Throwable) {
+            AppLogger.log("Exception showing banner ad: ${e.message}")
+            mainHandler.post { onFailed(e.message ?: "Unknown error") }
         }
     }
 
-    fun destroyStandardBanner(adId: String) {
-        try {
-            Tapsell.destroyBannerAd(adId)
-        } catch (e: Exception) {
-            Log.e(TAG, "destroy error: ${e.message}")
-        }
-    }
-
-    // ============ بنر آنی ============
-    fun createInstantBannerContainer(activity: Activity): BannerContainer {
-        return BannerContainer(activity)
-    }
-
-    fun loadInstantBanner(
-        container: BannerContainer,
-        activity: Activity,
-        onSuccess: (String) -> Unit = {},
-        onFailure: (String) -> Unit = {}
-    ) {
-        try {
-            Tapsell.requestBannerAd(
-                TapsellConfig.ZONE_INSTANT_BANNER,
-                BannerSize.BANNER_320_50,
-                activity,
-                object : RequestResultListener {
-                    override fun onSuccess(adId: String) {
-                        Tapsell.showBannerAd(adId, container, activity)
-                        onSuccess(adId)
-                    }
-                    override fun onFailure(message: String) {
-                        onFailure(message)
-                    }
-                }
-            )
-        } catch (e: Exception) {
-            onFailure(e.message ?: "Unknown error")
-        }
-    }
-
-    // ============ ویدیو جایزه‌ای ============
-    fun preloadRewardedVideo() {
-        try {
-            Tapsell.requestRewardedAd(
-                TapsellConfig.ZONE_REWARDED_VIDEO,
-                object : RequestResultListener {
-                    override fun onSuccess(adId: String) {
-                        lastRewardedAdId = adId
-                        Log.d(TAG, "Rewarded ad ready. adId=$adId")
-                    }
-                    override fun onFailure(message: String) {
-                        Log.e(TAG, "Rewarded video error: $message")
-                    }
-                }
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "preloadRewardedVideo exception: ${e.message}", e)
+    fun destroyBannerAd(adId: String?) {
+        if (!adId.isNullOrEmpty()) {
+            AppLogger.log("destroyBannerAd CALLED: adId=$adId")
+            try {
+                Tapsell.destroyBannerAd(adId)
+            } catch (e: Throwable) {
+                AppLogger.log("Exception destroying banner ad: ${e.message}")
+            }
         }
     }
 
     fun requestRewardedAd(
-        isVip: Boolean,
-        onAdAvailable: () -> Unit,
-        onAdNotAvailable: (reason: String) -> Unit
+        zoneId: String = TapsellConfig.ZONE_REWARDED_VIDEO,
+        activity: Activity? = null,
+        onSuccess: (String) -> Unit,
+        onFailure: (String) -> Unit
     ) {
-        if (isVip) { onAdNotAvailable("VIP users do not receive ads."); return }
+        AppLogger.log("requestRewardedAd CALLED for zone: $zoneId")
+        val listener = object : RequestResultListener {
+            override fun onSuccess(adId: String) {
+                AppLogger.log("requestRewardedAd SUCCESS: adId=$adId")
+                mainHandler.post { onSuccess(adId) }
+            }
 
-        if (lastRewardedAdId != null) {
-            onAdAvailable()
-            return
+            override fun onFailure(message: String) {
+                AppLogger.log("requestRewardedAd FAILED: $message")
+                mainHandler.post { onFailure(message) }
+            }
         }
 
         try {
-            Tapsell.requestRewardedAd(
-                TapsellConfig.ZONE_REWARDED_VIDEO,
-                object : RequestResultListener {
-                    override fun onSuccess(adId: String) {
-                        lastRewardedAdId = adId
-                        onAdAvailable()
-                    }
-                    override fun onFailure(message: String) {
-                        onAdNotAvailable(message)
-                    }
-                }
-            )
-        } catch (e: Exception) {
-            onAdNotAvailable("خطا: ${e.message}")
+            if (activity != null) {
+                Tapsell.requestRewardedAd(zoneId, activity, listener)
+            } else {
+                Tapsell.requestRewardedAd(zoneId, listener)
+            }
+        } catch (e: Throwable) {
+            AppLogger.log("Exception requesting rewarded ad: ${e.message}")
+            mainHandler.post { onFailure(e.message ?: "Unknown error") }
         }
     }
 
     fun showRewardedAd(
+        adId: String,
         activity: Activity,
-        isVip: Boolean,
-        onRewardEarned: () -> Unit,
-        onError: (String) -> Unit
+        onRewarded: () -> Unit = {},
+        onClosed: (AdShowCompletionState) -> Unit = {},
+        onFailed: (String) -> Unit = {}
     ) {
-        if (isVip) { onError("کاربران VIP نیازی به مشاهده تبلیغ ندارند"); return }
-
-        val adId = lastRewardedAdId
-        if (adId.isNullOrBlank()) {
-            onError("تبلیغ هنوز آماده نیست. لطفاً دوباره تلاش کن."); return
-        }
-
+        AppLogger.log("showRewardedAd CALLED: adId=$adId")
         try {
             Tapsell.showRewardedAd(
                 adId,
                 activity,
                 object : AdStateListener.Rewarded {
                     override fun onAdImpression() {
-                        Log.d(TAG, "onAdImpression")
+                        AppLogger.log("showRewardedAd IMPRESSION: adId=$adId")
                     }
+
                     override fun onAdClicked() {
-                        Log.d(TAG, "onAdClicked")
+                        AppLogger.log("showRewardedAd CLICKED: adId=$adId")
                     }
+
                     override fun onRewarded() {
-                        Log.d(TAG, "onRewarded")
-                        onRewardEarned()
+                        AppLogger.log("showRewardedAd REWARDED: adId=$adId")
+                        mainHandler.post { onRewarded() }
                     }
+
                     override fun onAdClosed(completionState: AdShowCompletionState) {
-                        lastRewardedAdId = null
-                        preloadRewardedVideo()
+                        AppLogger.log("showRewardedAd CLOSED: state=${completionState.name}")
+                        mainHandler.post { onClosed(completionState) }
                     }
+
                     override fun onAdFailed(message: String) {
-                        Log.e(TAG, "onAdFailed: $message")
-                        onError(message)
+                        AppLogger.log("showRewardedAd FAILED: $message")
+                        mainHandler.post { onFailed(message) }
                     }
                 }
             )
-        } catch (e: Exception) {
-            onError("خطا در نمایش تبلیغ: ${e.message}")
+        } catch (e: Throwable) {
+            AppLogger.log("Exception showing rewarded ad: ${e.message}")
+            mainHandler.post { onFailed(e.message ?: "Unknown error") }
         }
-    }
-
-    fun destroyInstantBanner(adId: String) {
-        try {
-            ir.tapsell.mediation.Tapsell.destroyBannerAd(adId)
-        } catch (_: Exception) {}
     }
 }
