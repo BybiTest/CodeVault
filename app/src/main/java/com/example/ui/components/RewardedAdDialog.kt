@@ -40,6 +40,8 @@ fun RewardedAdDialog(
     zoneId: String = TapsellConfig.ZONE_REWARDED_VIDEO,
     title: String = "Watch Ad to Unlock",
     description: String = "Watch a short video sponsor to unlock export functionality.",
+    message: String = description,
+    message: String = description,
     onRewardEarned: () -> Unit,
     onDismiss: () -> Unit
 ) {

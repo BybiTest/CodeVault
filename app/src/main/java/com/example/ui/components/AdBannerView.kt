@@ -37,10 +37,13 @@ import ir.tapsell.mediation.ad.views.banner.BannerContainer
 
 @Composable
 fun AdBannerView(
+    isVip: Boolean = false,
+    onUpgradeClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     zoneId: String = TapsellConfig.ZONE_STANDARD_BANNER,
     bannerSize: BannerSize = BannerSize.BANNER_320_50
 ) {
+    if (isVip) return
     val activity = LocalActivity.current as? Activity
     var adId by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
