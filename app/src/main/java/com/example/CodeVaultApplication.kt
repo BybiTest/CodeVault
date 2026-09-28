@@ -38,30 +38,37 @@ class CodeVaultApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        Log.e("TAPSELL_DEBUG", "=== CodeVaultApplication.onCreate STARTED ===")
+        writeLog("=== CodeVaultApplication.onCreate STARTED ===")
 
         try {
             database = CodeVaultDatabase.getDatabase(this)
-            Log.e("TAPSELL_DEBUG", "=== Database OK ===")
+            writeLog("=== Database OK ===")
 
             fileManager = FileManager(this)
             settingsRepository = SettingsRepository(this)
             projectRepository = ProjectRepository(database, fileManager)
-            Log.e("TAPSELL_DEBUG", "=== Repos OK ===")
+            writeLog("=== Repos OK ===")
 
             tapsellAdManager = TapsellAdManager(this)
-            Log.e("TAPSELL_DEBUG", "=== TapsellAdManager CREATED ===")
+            writeLog("=== TapsellAdManager CREATED ===")
 
             tapsellAdManager.initialize()
-            Log.e("TAPSELL_DEBUG", "=== Tapsell initialize CALLED ===")
+            writeLog("=== Tapsell initialize CALLED ===")
 
             billingManager = BillingManager(this, settingsRepository, applicationScope)
-            Log.e("TAPSELL_DEBUG", "=== BillingManager OK ===")
+            writeLog("=== BillingManager OK ===")
 
             Toast.makeText(this, "App started - Tapsell init called", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
-            Log.e("TAPSELL_DEBUG", "=== Application onCreate ERROR: ${e.message} ===")
+            writeLog("=== Application onCreate ERROR: ${e.message} ===")
             Toast.makeText(this, "App error: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun writeLog(message: String) {
+        try {
+            val logFile = java.io.File(filesDir, "tapsell_log.txt")
+            logFile.appendText("${System.currentTimeMillis()}: $message\n")
+        } catch (_: Exception) {}
     }
 }
