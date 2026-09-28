@@ -37,14 +37,18 @@ import com.example.data.ads.TapsellConfig
 
 @Composable
 fun RewardedAdDialog(
-    zoneId: String = TapsellConfig.ZONE_REWARDED_VIDEO,
+    isVip: Boolean = false,
+    message: String = "Watch a short video sponsor to unlock export functionality.",
     title: String = "Watch Ad to Unlock",
-    description: String = "Watch a short video sponsor to unlock export functionality.",
-    message: String = description,
-    message: String = description,
+    zoneId: String = TapsellConfig.ZONE_REWARDED_VIDEO,
     onRewardEarned: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    if (isVip) {
+        onRewardEarned()
+        return
+    }
+
     val activity = LocalActivity.current as? Activity
     val adManager = remember { TapsellAdManager.getInstance() }
 
@@ -97,7 +101,7 @@ fun RewardedAdDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = description,
+                    text = message,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
